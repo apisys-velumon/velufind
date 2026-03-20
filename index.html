@@ -57,15 +57,13 @@
         }
 
         .dropdown-menu button {
-            width: 100%; padding: 15px 20px;
+            width: 100%; padding: 12px 20px;
             border: none; background: none;
             text-align: left; cursor: pointer;
             font-size: 14px; white-space: nowrap;
-            transition: background 0.2s;
         }
 
         .dropdown-menu button:hover { background: #f0f0f0; }
-        .edit-active { background-color: #d4edda !important; color: #155724 !important; font-weight: bold; }
 
         #map { flex-grow: 1; width: 100%; z-index: 1; }
     </style>
@@ -103,7 +101,6 @@
 
         const menuBtn = document.getElementById('menuToggle');
         const dropdown = document.getElementById('myDropdown');
-        const editBtn = document.getElementById('editBtn');
 
         menuBtn.onclick = (e) => {
             const isOpen = dropdown.style.display === 'block';
@@ -112,32 +109,26 @@
             e.stopPropagation();
         };
 
-        // Schließen bei Klick außerhalb (außer wenn im Bearbeitungsmodus)
+        // Schließen bei Klick außerhalb
         window.onclick = () => {
-            if (!isEditing) {
-                dropdown.style.display = 'none';
-                menuBtn.classList.remove('open');
-            }
+            dropdown.style.display = 'none';
+            menuBtn.classList.remove('open');
         };
 
-        editBtn.onclick = function(e) {
-            e.stopPropagation(); // Menü bleibt offen
+        document.getElementById('editBtn').onclick = function(e) {
+            e.stopPropagation();
             if (!userMarker) return;
-            
             isEditing = !isEditing;
             
             if (isEditing) {
                 userMarker.dragging.enable();
-                this.innerText = "✅ Position speichern";
-                this.classList.add('edit-active');
+                this.innerText = "✅ Speichern";
                 userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
-                this.classList.remove('edit-active');
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                
-                // Nach dem Speichern Menü schließen und Icon zurücksetzen
+                // Menü schließen und Icon zurücksetzen
                 dropdown.style.display = 'none';
                 menuBtn.classList.remove('open');
             }
