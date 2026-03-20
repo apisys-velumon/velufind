@@ -4,61 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standort Korrektur</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    
+    <!-- Leaflet CSS & JS von einem zuverlässigen CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        #map { height: 100vh; }
-        body { margin: 0; padding: 0; }
-        .controls {
-            position: absolute; top: 10px; left: 50px; z-index: 1000;
-            background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        /* WICHTIG: html und body müssen 100% Höhe haben */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
         }
-        button { cursor: pointer; padding: 5px 10px; }
+        
+        /* Die Karte muss eine explizite Höhe bekommen */
+        #map { 
+            height: 100vh; 
+            width: 100%; 
+        }
+
+        .controls {
+            position: absolute; 
+            top: 15px; 
+            left: 50px; 
+            z-index: 1000;
+            background: white; 
+            padding: 12px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        button { 
+            cursor: pointer; 
+            padding: 8px 15px; 
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            font-weight: bold;
+        }
+
+        #status { font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
+
     <div class="controls">
         <button id="editBtn">📍 Standort manuell korrigieren</button>
-        <span id="status"></span>
+        <div id="status">Suche Standort...</div>
     </div>
+
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
     <script>
-        const map = L.map('map').setView([51.5, -0.1], 13);
+        // Karte initialisieren (Standard-Ansicht falls GPS fehlschlägt)
+        const map = L.map('map').setView([51.1657, 10.4515], 6); 
         let userMarker, accuracyCircle;
         let isEditing = false;
 
+        // OpenStreetMap Kacheln laden
         L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+            attribution: '&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a>'
         }).addTo(map);
 
-        // Automatische Ortung
+        // Automatische Ortung starten
         map.locate({setView: true, maxZoom: 16});
 
-        map.on('locationfound', e => {
+        map.on('locationfound', (e) => {
+            document.getElementById('status').innerText = "Standort gefunden!";
+            
             userMarker = L.marker(e.latlng, {draggable: false}).addTo(map)
                 .bindPopup("Dein geschätzter Standort").openPopup();
+            
             accuracyCircle = L.circle(e.latlng, e.accuracy / 2).addTo(map);
+        });
+
+        map.on('locationerror', () => {
+            document.getElementById('status').innerText = "GPS-Zugriff verweigert oder nicht möglich.";
         });
 
         // Button-Logik
         const btn = document.getElementById('editBtn');
         btn.onclick = () => {
+            if (!userMarker) return; // Verhindern, wenn noch kein Marker da ist
+
             isEditing = !isEditing;
             if (isEditing) {
                 userMarker.dragging.enable();
                 btn.innerText = "✅ Position speichern";
-                btn.style.background = "#d4edda";
-                document.getElementById('status').innerText = "Marker jetzt ziehen!";
+                btn.style.background = "#e1f5fe";
+                document.getElementById('status').innerText = "Marker jetzt an die richtige Stelle ziehen!";
             } else {
                 userMarker.dragging.disable();
                 btn.innerText = "📍 Standort manuell korrigieren";
                 btn.style.background = "";
+                
                 const pos = userMarker.getLatLng();
-                document.getElementById('status').innerText = `Gespeichert: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
-                if(accuracyCircle) map.removeLayer(accuracyCircle); // Kreis entfernen, da manuell gesetzt
+                document.getElementById('status').innerText = `Neu gesetzt: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+                
+                if(accuracyCircle) map.removeLayer(accuracyCircle);
             }
         };
+
+        // Falls die Karte grau bleibt, erzwinge ein Neuzeichnen nach 200ms
+        setTimeout(() => { map.invalidateSize(); }, 200);
     </script>
 </body>
 </html>
