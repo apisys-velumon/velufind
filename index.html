@@ -2,98 +2,82 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>OSM Fix</title>
+    <title>Standort App Fix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com" />
-    
     <style>
-        /* Grundgerüst MUSS 100% hoch sein */
-        html, body { 
-            height: 100%; 
-            width: 100%; 
-            margin: 0; 
-            padding: 0; 
-        }
-
-        /* Karte MUSS absolut positioniert sein, um Platz einzunehmen */
-        #map { 
-            position: absolute; 
-            top: 0; 
-            bottom: 0; 
-            right: 0; 
-            left: 0; 
-            background: #e0e0e0; /* Grauer Platzhalter */
-        }
-
-        .menu {
-            position: absolute; 
-            top: 10px; 
-            left: 50px; 
-            z-index: 9999; /* Immer ganz oben */
-            background: white; 
-            padding: 10px; 
-            border: 2px solid #333;
-            border-radius: 5px;
-        }
+        html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background: #eee; }
+        .controls { position: absolute; top: 10px; left: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-family: sans-serif; }
+        button { cursor: pointer; padding: 8px; font-weight: bold; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="menu">
-        <button id="editBtn" style="padding: 10px; cursor: pointer;">📍 Standort korrigieren</button>
-        <div id="status" style="font-family: sans-serif; font-size: 12px; margin-top: 5px;">Lade Kartenbilder...</div>
-    </div>
+<div class="controls">
+    <button id="editBtn">📍 Standort korrigieren</button>
+    <div id="status" style="font-size: 11px; margin-top: 5px;">Suche GPS...</div>
+</div>
 
-    <div id="map"></div>
+<div id="map"></div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com"></script>
+<script src="https://unpkg.com"></script>
+<script>
+    // 1. Karte initialisieren
+    var map = L.map('map').setView([51.16, 10.45], 5);
 
-    <script>
-        // 1. Karte initialisieren
-        var map = L.map('map').setView([51.16, 10.45], 6);
+    // 2. Fallback-System für Kartenbilder (Tiles)
+    var tileServers = [
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://{s}://{z}/{x}/{y}{r}.png',
+        'https://tile.openstreetmap.de{z}/{x}/{y}.png'
+    ];
 
-        // 2. Kacheln laden (Wir nutzen hier CartoDB - oft stabiler als OSM Direkt)
-        L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap',
-            maxZoom: 20
-        }).addTo(map);
-
-        var userMarker;
-        var isEditing = false;
-
-        // 3. Standort suchen
-        map.locate({setView: true, maxZoom: 16});
-
-        map.on('locationfound', function(e) {
-            document.getElementById('status').innerText = "Standort gefunden!";
-            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du").openPopup();
+    function loadTiles(index) {
+        if (index >= tileServers.length) {
+            document.getElementById('status').innerText = "❌ Karte blockiert (Firewall/Browser)";
+            return;
+        }
+        var layer = L.tileLayer(tileServers[index], { attribution: '© OSM' }).addTo(map);
+        
+        layer.on('tileload', function() { 
+            document.getElementById('status').innerText = "Karte geladen!";
         });
 
-        map.on('locationerror', function() {
-            document.getElementById('status').innerText = "Fehler: GPS deaktiviert?";
+        layer.on('tileerror', function() {
+            map.removeLayer(layer);
+            loadTiles(index + 1); // Versuche nächsten Server
         });
+    }
+    loadTiles(0);
 
-        // 4. Korrektur-Button
-        document.getElementById('editBtn').onclick = function() {
-            if (!userMarker) return;
-            isEditing = !isEditing;
-            if (isEditing) {
-                userMarker.dragging.enable();
-                this.innerText = "✅ Position speichern";
-                document.getElementById('status').innerText = "Zieh den Marker an die richtige Stelle!";
-            } else {
-                userMarker.dragging.disable();
-                this.innerText = "📍 Standort korrigieren";
-                var pos = userMarker.getLatLng();
-                document.getElementById('status').innerText = "Neu: " + pos.lat.toFixed(5) + ", " + pos.lng.toFixed(5);
-            }
-        };
+    // 3. Standort-Logik
+    var marker;
+    var isEditing = false;
 
-        // 5. Erzwinge das Laden der Bilder, falls der Container verzögert erscheint
-        setTimeout(function(){ map.invalidateSize(); }, 500);
-    </script>
+    map.locate({setView: true, maxZoom: 16});
+
+    map.on('locationfound', function(e) {
+        marker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du").openPopup();
+        document.getElementById('status').innerText = "Standort gefunden!";
+    });
+
+    document.getElementById('editBtn').onclick = function() {
+        if (!marker) return;
+        isEditing = !isEditing;
+        if (isEditing) {
+            marker.dragging.enable();
+            this.innerText = "✅ Speichern";
+            document.getElementById('status').innerText = "Marker ziehen...";
+        } else {
+            marker.dragging.disable();
+            this.innerText = "📍 Standort korrigieren";
+            var p = marker.getLatLng();
+            document.getElementById('status').innerText = "Neu: " + p.lat.toFixed(4) + ", " + p.lng.toFixed(4);
+        }
+    };
+
+    // WICHTIG: Erzwinge Anzeige nach dem Laden
+    window.onload = function() { setTimeout(function(){ map.invalidateSize(); }, 400); };
+</script>
 </body>
 </html>
