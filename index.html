@@ -36,7 +36,7 @@
         map.on('locationfound', e => {
             // Marker speichern, damit wir ihn später bewegen können
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
-            L.circle(e.latlng, e.accuracy / 2).addTo(map);
+            //L.circle(e.latlng, e.accuracy / 2).addTo(map);
         });
 
         // Button-Logik
