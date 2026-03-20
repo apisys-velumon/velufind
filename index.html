@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
         
@@ -40,26 +40,28 @@
         .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
         .hamburger-btn.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
 
-        /* Fading-Animation für das Menü */
+        /* Fading Logik für das Menü */
         .dropdown-menu {
             position: absolute;
             top: 65px; right: 15px;
-            background: white; border: 1px solid #ccc;
+            background: white;
+            border: 1px solid #ccc;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 3000; border-radius: 4px; overflow: hidden;
+            z-index: 3000;
+            border-radius: 4px;
+            overflow: hidden;
             
-            /* Startzustand (unsichtbar) */
+            /* Startzustand: unsichtbar */
+            display: block; /* Muss block sein, damit opacity wirkt */
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-10px);
-            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
         }
 
-        /* Endzustand (sichtbar) */
+        /* Endzustand: sichtbar */
         .dropdown-menu.show {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0);
         }
 
         .dropdown-menu button {
@@ -87,15 +89,16 @@
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
         let userMarker;
         let isEditing = false;
 
-        // Auto-Close für Tooltips nach 1 Sekunde
         map.on('popupopen', function(e) {
             setTimeout(function() { map.closePopup(); }, 1000); 
         });
@@ -116,7 +119,7 @@
 
         window.onclick = () => { 
             if (!isEditing) {
-                dropdown.classList.remove('show');
+                dropdown.classList.remove('show'); 
                 menuBtn.classList.remove('open');
             }
         };
