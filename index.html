@@ -1,37 +1,43 @@
-html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>APISYS veluFind</title>
 
-    <!-- Leaflet CSS & JS von offizieller Quelle -->
+    <!-- Leaflet Bibliothek über HTTPS -->
     <link rel="stylesheet" href="https://unpkg.com" />
     <script src="https://unpkg.com"></script>
 
     <style>
-        /* Verhindert weißes Flackern und setzt Karte in den Hintergrund */
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; background: #eee; overflow: hidden; }
+        html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #eee; font-family: sans-serif; }
+        
+        /* Karte füllt den ganzen Hintergrund */
         #map { position: absolute; top: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
 
+        /* Gelber Kopfbalken */
         .header { 
             position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
-            background: #ffcc00; color: #333; padding: 12px; text-align: center; 
+            background: #ffcc00; color: #333; padding: 15px; text-align: center; 
             font-weight: bold; font-size: 1.2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
 
+        /* Bedienfeld unten */
         .panel { 
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: rgba(255, 255, 255, 0.95); padding: 15px; 
-            border-radius: 15px; width: 85%; max-width: 380px; box-shadow: 0 4px 25px rgba(0,0,0,0.4);
+            border-radius: 20px; width: 85%; max-width: 380px; box-shadow: 0 4px 25px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
         }
 
-        .btn { border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; width: 100%; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .btn-blue { background: #007bff; } .btn-green { background: #28a745; } .btn-orange { background: #fd7e14; grid-column: span 2; }
-        input[type="range"] { width: 100%; margin: 10px 0; }
-        .stats { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; }
+        .stats { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; margin: 10px 0; accent-color: #007bff; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { border: none; padding: 12px; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        .btn-blue { background: #007bff; }
+        .btn-green { background: #28a745; }
+        .btn-orange { background: #fd7e14; grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -55,33 +61,67 @@ html
 
 <script>
     let map, activeVector, userPos, currentHeading = 0, isCompassActive = false, savedData = [];
+    let isTracking = true; // Variable für den Verfolgungs-Modus
 
-    // Initialisierung
     function initMap() {
-        // Karte mit Standard-Koordinaten (Berlin) starten
-        map = L.map('map', { zoomControl: false }).setView([52.52, 13.4], 13);
+        // Initiale Karte (wird sofort durch GPS überschrieben)
+        map = L.map('map', { zoomControl: false }).setView([51.16, 10.45], 6);
 
-        // OSM-Kacheln mit HTTPS laden
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19, attribution: '&copy; OSM'
         }).addTo(map);
 
-        // WICHTIG: Erzwingt die Anzeige, falls der Container beim Start noch nicht fertig berechnet war
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        // Erzwungene Neuberechnung nach Laden (Fix für weiße Karte)
+        setTimeout(() => { map.invalidateSize(); }, 500);
 
-        // Standort-Abfrage
-        map.locate({setView: true, maxZoom: 16, watch: true, enableHighAccuracy: true});
+        // GPS Standort-Suche mit automatischer Zentrierung
+        map.locate({ setView: true, maxZoom: 16, watch: true, enableHighAccuracy: true });
         
         map.on('locationfound', e => {
             userPos = e.latlng;
-            if (!window.uMark) window.uMark = L.circleMarker(userPos, {radius: 7, color: '#fff', fillColor: '#007bff', fillOpacity: 1, weight: 2}).addTo(map);
-            else window.uMark.setLatLng(userPos);
+            
+            // Marker für eigenen Standort
+            if (!window.uMark) {
+                window.uMark = L.circleMarker(userPos, { radius: 8, color: '#fff', fillColor: '#007bff', fillOpacity: 1, weight: 3 }).addTo(map);
+            } else {
+                window.uMark.setLatLng(userPos);
+            }
+
+            // Wenn Tracking aktiv ist, Karte auf Nutzer zentrieren
+            if (isTracking) {
+                map.panTo(userPos);
+            }
             updateActiveVector();
         });
+
+        // Deaktiviere Tracking, wenn Nutzer die Karte manuell schiebt
+        map.on('dragstart', () => { isTracking = false; });
     }
 
-    // Vektor-Vorschau berechnen
+    function toggleCompass() {
+        // GPS-Verfolgung wieder aktivieren, wenn Kompass gestartet wird
+        isTracking = true;
+
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(res => { if (res === 'granted') window.addEventListener('deviceorientation', handleRot); })
+                .catch(console.error);
+        } else {
+            window.addEventListener('deviceorientation', handleRot);
+        }
+        isCompassActive = !isCompassActive;
+        document.getElementById('compassBtn').innerText = isCompassActive ? "Fixieren" : "Kompass AN";
+        document.getElementById('compassBtn').style.background = isCompassActive ? "#dc3545" : "#007bff";
+    }
+
+    function handleRot(e) {
+        if (!isCompassActive) return;
+        currentHeading = e.webkitCompassHeading || (360 - e.alpha);
+        updateActiveVector();
+        // Karte folgt der Position während der Messung
+        if (userPos && isTracking) map.panTo(userPos);
+    }
+
     function updateActiveVector() {
         if (!userPos) return;
         const len = parseFloat(document.getElementById('length').value);
@@ -90,10 +130,9 @@ html
         
         const end = calculateEnd(userPos.lat, userPos.lng, len, currentHeading);
         if (activeVector) activeVector.setLatLngs([userPos, end]);
-        else activeVector = L.polyline([userPos, end], {color: '#007bff', weight: 5, dashArray: '5, 10'}).addTo(map);
+        else activeVector = L.polyline([userPos, end], {color: '#007bff', weight: 6, dashArray: '5, 10'}).addTo(map);
     }
 
-    // Geometrie-Berechnung
     function calculateEnd(lat, lng, d, a) {
         const R = 6371000, br = a * Math.PI / 180, la1 = lat * Math.PI / 180, lo1 = lng * Math.PI / 180;
         const la2 = Math.asin(Math.sin(la1)*Math.cos(d/R) + Math.cos(la1)*Math.sin(d/R)*Math.cos(br));
@@ -101,36 +140,25 @@ html
         return [la2*180/Math.PI, lo2*180/Math.PI];
     }
 
-    // Kompass-Funktion
-    function toggleCompass() {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(s => { if(s==='granted') window.addEventListener('deviceorientation', handleRot); });
-        } else { window.addEventListener('deviceorientation', handleRot); }
-        isCompassActive = !isCompassActive;
-        document.getElementById('compassBtn').innerText = isCompassActive ? "Fixieren" : "Kompass AN";
-    }
-
-    function handleRot(e) {
-        if (!isCompassActive) return;
-        currentHeading = e.webkitCompassHeading || (360 - e.alpha);
-        updateActiveVector();
-    }
-
     function saveVector() {
         if (!activeVector) return;
         const pts = activeVector.getLatLngs();
-        L.polyline(pts, {color: '#28a745', weight: 4}).addTo(map);
+        L.polyline(pts, {color: '#28a745', weight: 5}).addTo(map);
         savedData.push(pts);
         document.getElementById('count').innerText = savedData.length + " Vektoren";
         isCompassActive = false;
         document.getElementById('compassBtn').innerText = "Kompass AN";
+        document.getElementById('compassBtn').style.background = "#007bff";
     }
 
     function exportGPX() {
+        if (savedData.length === 0) return alert("Keine Vektoren fixiert!");
         let g = '<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" xmlns="http://www.topografix.com">';
-        savedData.forEach(p => { g += `<trk><trkseg><trkpt lat="${p[0].lat}" lon="${p[0].lng}"/><trkpt lat="${p[1].lat}" lon="${p[1].lng}"/></trkseg></trk>`; });
+        savedData.forEach((p, i) => { 
+            g += `<trk><name>V${i+1}</name><trkseg><trkpt lat="${p[0].lat}" lon="${p[0].lng}"/><trkpt lat="${p[1].lat}" lon="${p[1].lng}"/></trkseg></trk>`; 
+        });
         const b = new Blob([g+'</gpx>'], {type: 'application/gpx+xml'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'export.gpx'; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'velufind.gpx'; a.click();
     }
 
     initMap();
