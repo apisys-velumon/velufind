@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standort auf Karte</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com" />
     <style>
         #map { height: 100vh; }
         body { margin: 0; }
-        /* Kleines Overlay für den Button */
         .controls {
             position: absolute; top: 10px; left: 50px; z-index: 1000;
             background: white; padding: 5px; border: 1px solid #ccc;
@@ -21,10 +20,10 @@
     </div>
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
@@ -34,12 +33,10 @@
         map.locate({setView: true, maxZoom: 16});
         
         map.on('locationfound', e => {
-            // Marker speichern, damit wir ihn später bewegen können
+            // Marker erstellen (der Kreis wurde entfernt)
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
-            //L.circle(e.latlng, e.accuracy / 2).addTo(map);
         });
 
-        // Button-Logik
         document.getElementById('editBtn').onclick = function() {
             if (!userMarker) return;
             isEditing = !isEditing;
@@ -53,7 +50,6 @@
                 this.innerText = "📍 Standort korrigieren";
                 const pos = userMarker.getLatLng();
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                console.log("Neue Koordinaten:", pos.lat, pos.lng);
             }
         };
     </script>
