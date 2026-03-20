@@ -1,83 +1,99 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Standort-App Fix</title>
+    <title>OSM Fix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Leaflet CSS & JS -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com" />
-    <script src="https://unpkg.com"></script>
-
+    
     <style>
-        /* WICHTIG: Volle Höhe für alle Eltern-Elemente erzwingen */
+        /* Grundgerüst MUSS 100% hoch sein */
         html, body { 
-            height: 100%; width: 100%; margin: 0; padding: 0; 
-        }
-        
-        /* Container mit absoluter Sicherheit auf Fullscreen setzen */
-        #map { 
-            height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: #ddd; 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
         }
 
-        .ui-overlay {
-            position: absolute; top: 10px; left: 50px; z-index: 2000;
-            background: white; padding: 10px; border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-family: Arial, sans-serif;
+        /* Karte MUSS absolut positioniert sein, um Platz einzunehmen */
+        #map { 
+            position: absolute; 
+            top: 0; 
+            bottom: 0; 
+            right: 0; 
+            left: 0; 
+            background: #e0e0e0; /* Grauer Platzhalter */
         }
-        button { cursor: pointer; padding: 8px; font-weight: bold; }
+
+        .menu {
+            position: absolute; 
+            top: 10px; 
+            left: 50px; 
+            z-index: 9999; /* Immer ganz oben */
+            background: white; 
+            padding: 10px; 
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="ui-overlay">
-        <button id="editBtn">📍 Standort korrigieren</button>
-        <div id="status" style="font-size: 11px; margin-top: 5px;">Warte auf GPS...</div>
+    <div class="menu">
+        <button id="editBtn" style="padding: 10px; cursor: pointer;">📍 Standort korrigieren</button>
+        <div id="status" style="font-family: sans-serif; font-size: 12px; margin-top: 5px;">Lade Kartenbilder...</div>
     </div>
 
     <div id="map"></div>
 
-    <script>
-        // Karte initialisieren mit festem Fallback-Punkt
-        const map = L.map('map').setView([51.16, 10.45], 6);
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com"></script>
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
+    <script>
+        // 1. Karte initialisieren
+        var map = L.map('map').setView([51.16, 10.45], 6);
+
+        // 2. Kacheln laden (Wir nutzen hier CartoDB - oft stabiler als OSM Direkt)
+        L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 20
         }).addTo(map);
 
-        let userMarker, isEditing = false;
+        var userMarker;
+        var isEditing = false;
 
-        // Sofortige Korrektur der Kartengröße nach dem Laden
-        setTimeout(() => { map.invalidateSize(); }, 500);
+        // 3. Standort suchen
+        map.locate({setView: true, maxZoom: 16});
 
-        // Ortung
-        map.locate({setView: true, maxZoom: 15});
-
-        map.on('locationfound', (e) => {
-            document.getElementById('status').innerText = "Standort aktiv";
-            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Du bist hier").openPopup();
+        map.on('locationfound', function(e) {
+            document.getElementById('status').innerText = "Standort gefunden!";
+            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du").openPopup();
         });
 
-        map.on('locationerror', () => {
-            document.getElementById('status').innerText = "GPS-Zugriff fehlt!";
+        map.on('locationerror', function() {
+            document.getElementById('status').innerText = "Fehler: GPS deaktiviert?";
         });
 
-        // Button-Funktion
+        // 4. Korrektur-Button
         document.getElementById('editBtn').onclick = function() {
             if (!userMarker) return;
             isEditing = !isEditing;
             if (isEditing) {
                 userMarker.dragging.enable();
-                this.innerText = "✅ Speichern";
-                document.getElementById('status').innerText = "Marker jetzt verschieben!";
+                this.innerText = "✅ Position speichern";
+                document.getElementById('status').innerText = "Zieh den Marker an die richtige Stelle!";
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
-                const pos = userMarker.getLatLng();
-                document.getElementById('status').innerText = `Gespeichert: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
+                var pos = userMarker.getLatLng();
+                document.getElementById('status').innerText = "Neu: " + pos.lat.toFixed(5) + ", " + pos.lng.toFixed(5);
             }
         };
+
+        // 5. Erzwinge das Laden der Bilder, falls der Container verzögert erscheint
+        setTimeout(function(){ map.invalidateSize(); }, 500);
     </script>
 </body>
 </html>
