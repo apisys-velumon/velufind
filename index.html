@@ -4,118 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; }
         
-        /* Gelbe Kopfleiste */
+        /* Gelbe Kopfleiste mit brauner Schrift */
         .header {
             background-color: #FFD700;
             color: #5D4037;
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 2000;
-            height: 50px;
-            box-sizing: border-box;
+            padding: 10px;
+            text-align: center;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 20px;
+            z-index: 1001;
         }
 
-        .header-title { font-weight: bold; font-size: 18px; }
+        #map { flex-grow: 1; width: 100%; }
 
-        /* Donut Button */
-        .donut-btn {
-            width: 30px; height: 30px;
-            background: transparent;
-            border: 5px solid #5D4037;
-            border-radius: 50%;
-            cursor: pointer;
-            padding: 0;
+        .controls {
+            position: absolute; top: 60px; left: 50px; z-index: 1000;
+            background: white; padding: 5px; border: 1px solid #ccc;
         }
-
-        /* Pulldown Menü */
-        #myDropdown {
-            display: none;
-            position: absolute; right: 10px; top: 55px;
-            background: white; border: 1px solid #ccc;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 3000; min-width: 160px;
-            border-radius: 4px;
-        }
-
-        #myDropdown button {
-            width: 100%; padding: 12px; border: none;
-            background: none; text-align: left; cursor: pointer;
-        }
-
-        #myDropdown button:hover { background: #f0f0f0; }
-
-        /* Karte */
-        #map { flex-grow: 1; width: 100%; z-index: 1; background: #ddd; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">APISYS veluFind</div>
-        <button class="donut-btn" id="menuToggle"></button>
-    </div>
-
-    <div id="myDropdown">
+    <div class="header">APISYS veluFind</div>
+    
+    <div class="controls">
         <button id="editBtn">📍 Standort korrigieren</button>
     </div>
-
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Karte initialisieren
-        const map = L.map('map').setView([51.16, 10.45], 6);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
-            attribution: '© OSM'
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
         let userMarker;
         let isEditing = false;
 
-        // 2. Standort finden
         map.locate({setView: true, maxZoom: 16});
+        
         map.on('locationfound', e => {
-            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Du bist hier").openPopup();
+            // Marker wird erstellt, der Kreis (L.circle) wurde hier entfernt
+            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
         });
 
-        // 3. Pulldown Menü Logik
-        const menuToggle = document.getElementById('menuToggle');
-        const dropdown = document.getElementById('myDropdown');
-
-        menuToggle.onclick = (e) => {
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-            e.stopPropagation();
-        };
-
-        // Schließen wenn man woanders klickt
-        window.onclick = () => { dropdown.style.display = 'none'; };
-
-        // 4. Korrektur Logik
-        document.getElementById('editBtn').onclick = function(e) {
-            e.stopPropagation(); // Verhindert sofortiges Schließen
+        // Button-Logik
+        document.getElementById('editBtn').onclick = function() {
             if (!userMarker) return;
-            
             isEditing = !isEditing;
+            
             if (isEditing) {
                 userMarker.dragging.enable();
                 this.innerText = "✅ Speichern";
-                userMarker.setPopupContent("Marker jetzt ziehen!").openPopup();
+                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
-                userMarker.setPopupContent("Gespeichert!").openPopup();
-                dropdown.style.display = 'none';
+                const pos = userMarker.getLatLng();
+                userMarker.setPopupContent("Position gespeichert!").openPopup();
+                console.log("Neue Koordinaten:", pos.lat, pos.lng);
             }
         };
 
-        // 5. Karten-Fix: Erzwinge Anzeige nach 300ms
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        // Kleiner Fix für die Kartengröße nach dem Laden
+        setTimeout(() => { map.invalidateSize(); }, 200);
     </script>
 </body>
 </html>
