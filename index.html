@@ -23,15 +23,27 @@
 
         .header-title { font-weight: bold; font-size: 20px; }
 
-        /* Donut Button Design */
-        .donut-btn {
-            width: 34px; height: 34px;
+        /* Hamburger Button Design */
+        .hamburger-btn {
+            width: 30px;
+            height: 24px;
             background: transparent;
-            border: 6px solid #5D4037; /* Der "Donut-Ring" */
-            border-radius: 50%;
+            border: none;
             cursor: pointer;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             box-sizing: border-box;
+        }
+
+        /* Die drei Hamburger-Striche */
+        .hamburger-btn span {
+            display: block;
+            height: 4px;
+            width: 100%;
+            background-color: #5D4037;
+            border-radius: 2px;
         }
 
         /* Pulldown Menü */
@@ -66,7 +78,11 @@
 <body>
     <div class="header">
         <div class="header-title">APISYS veluFind</div>
-        <button class="donut-btn" id="menuToggle"></button>
+        <button class="hamburger-btn" id="menuToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
     </div>
     
     <div id="myDropdown" class="dropdown-menu">
@@ -100,12 +116,11 @@
             e.stopPropagation();
         };
 
-        // Überall klicken zum Schließen
         window.onclick = () => { dropdown.style.display = 'none'; };
 
         // Button-Logik innerhalb des Menüs
         document.getElementById('editBtn').onclick = function(e) {
-            e.stopPropagation(); // Verhindert Schließen beim Klick auf Button
+            e.stopPropagation();
             if (!userMarker) return;
             isEditing = !isEditing;
             
@@ -117,7 +132,7 @@
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                dropdown.style.display = 'none'; // Menü nach Speichern schließen
+                dropdown.style.display = 'none';
             }
         };
 
