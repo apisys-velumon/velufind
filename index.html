@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
         
         .header {
             background-color: #FFD700;
@@ -22,56 +22,62 @@
 
         .header-title { font-weight: bold; font-size: 20px; }
 
-        /* Hamburger Button & X Animation */
         .hamburger-btn {
-            width: 30px; height: 24px;
-            background: transparent; border: none;
-            cursor: pointer; padding: 0;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; z-index: 3001;
+            width: 30px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            position: relative;
         }
 
         .hamburger-btn span {
-            display: block; height: 4px; width: 100%;
-            background-color: #5D4037; border-radius: 2px;
+            display: block;
+            height: 4px;
+            width: 100%;
+            background-color: #5D4037;
+            border-radius: 2px;
             transition: all 0.3s ease-in-out;
+            position: relative;
         }
 
-        /* X-Transformation */
-        .hamburger-btn.open span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
-        .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: translateX(-10px); }
-        .hamburger-btn.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
+        .hamburger-btn.open span:nth-child(1) {
+            transform: translateY(10px) rotate(45deg);
+        }
+        .hamburger-btn.open span:nth-child(2) {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        .hamburger-btn.open span:nth-child(3) {
+            transform: translateY(-10px) rotate(-45deg);
+        }
 
-        /* Pulldown Menü mit Animation */
         .dropdown-menu {
+            display: none;
             position: absolute;
-            top: 60px; right: 15px;
+            top: 65px; right: 15px;
             background: white;
             border: 1px solid #ccc;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             z-index: 3000;
-            border-radius: 0 0 4px 4px;
+            border-radius: 4px;
             overflow: hidden;
-            
-            /* Animations-Status: versteckt */
-            opacity: 0;
-            transform: translateY(-20px);
-            pointer-events: none;
-            transition: all 0.3s ease-out;
-        }
-
-        /* Animations-Status: sichtbar */
-        .dropdown-menu.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
         }
 
         .dropdown-menu button {
-            width: 100%; padding: 15px 25px;
-            border: none; background: none;
-            text-align: left; cursor: pointer;
-            font-size: 14px; white-space: nowrap;
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
         }
 
         .dropdown-menu button:hover { background: #f0f0f0; }
@@ -95,10 +101,10 @@
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
@@ -106,6 +112,7 @@
         let isEditing = false;
 
         map.locate({setView: true, maxZoom: 16});
+        
         map.on('locationfound', e => {
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
         });
@@ -114,18 +121,22 @@
         const dropdown = document.getElementById('myDropdown');
 
         menuBtn.onclick = (e) => {
-            dropdown.classList.toggle('show');
+            const isOpen = dropdown.style.display === 'block';
+            dropdown.style.display = isOpen ? 'none' : 'block';
             menuBtn.classList.toggle('open');
             e.stopPropagation();
         };
 
-        window.onclick = () => {
-            dropdown.classList.remove('show');
-            menuBtn.classList.remove('open');
+        // Klick außerhalb schließt nur, wenn NICHT gerade editiert wird
+        window.onclick = () => { 
+            if (!isEditing) {
+                dropdown.style.display = 'none'; 
+                menuBtn.classList.remove('open');
+            }
         };
 
         document.getElementById('editBtn').onclick = function(e) {
-            e.stopPropagation();
+            e.stopPropagation(); // Verhindert das Schließen des Menüs durch den window.onclick Event
             if (!userMarker) return;
             isEditing = !isEditing;
             
@@ -133,12 +144,14 @@
                 userMarker.dragging.enable();
                 this.innerText = "✅ Speichern";
                 userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
+                // Das Menü bleibt hier explizit offen
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                // Menü schließen
-                dropdown.classList.remove('show');
+                
+                // Menü schließt sich jetzt, da der Vorgang abgeschlossen ist
+                dropdown.style.display = 'none';
                 menuBtn.classList.remove('open');
             }
         };
