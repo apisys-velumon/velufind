@@ -3,47 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APISYS veluFind</title>
+    <title>Standort auf Karte</title>
     <link rel="stylesheet" href="https://unpkg.com" />
     <style>
-        body { margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* Gelbe Kopfleiste */
-        .header {
-            background-color: #FFD700; /* Gold/Gelb */
-            color: #5D4037; /* Braun */
-            padding: 15px;
-            text-align: center;
-            font-family: sans-serif;
-            font-weight: bold;
-            font-size: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1001;
-        }
-
-        /* Karte füllt den Rest des Bildschirms */
-        #map { flex-grow: 1; width: 100%; }
-
+        #map { height: 100vh; }
+        body { margin: 0; }
         .controls {
-            position: absolute; top: 80px; left: 10px; z-index: 1000;
+            position: absolute; top: 10px; left: 50px; z-index: 1000;
             background: white; padding: 5px; border: 1px solid #ccc;
         }
-        button { cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <div class="header">APISYS veluFind</div>
-
     <div class="controls">
         <button id="editBtn">📍 Standort korrigieren</button>
     </div>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com"></script>
     <script>
-        // Karte initialisieren
         const map = L.map('map').setView([51.505, -0.09], 13);
         L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
@@ -52,15 +30,13 @@
         let userMarker;
         let isEditing = false;
 
-        // Standort finden
         map.locate({setView: true, maxZoom: 16});
         
         map.on('locationfound', e => {
-            // Nur Marker setzen, KEIN Kreis
+            // Marker erstellen (der Kreis wurde entfernt)
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
         });
 
-        // Button-Logik
         document.getElementById('editBtn').onclick = function() {
             if (!userMarker) return;
             isEditing = !isEditing;
@@ -72,12 +48,10 @@
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
+                const pos = userMarker.getLatLng();
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
             }
         };
-
-        // Fix, falls die Karte nach dem Laden der Leiste grau bleibt
-        setTimeout(() => { map.invalidateSize(); }, 200);
     </script>
 </body>
 </html>
