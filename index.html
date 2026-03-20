@@ -3,93 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standort App - Final Fix</title>
-    
-    <!-- Leaflet Ressourcen -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    <script src="https://unpkg.com"></script>
-
+    <title>Standort auf Karte</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* 1. CSS-FIX: Erzwingt Sichtbarkeit der Kartenbilder */
-        html, body { height: 100%; margin: 0; padding: 0; }
-        
-        #map { 
-            height: 100vh; 
-            width: 100%; 
-            background: #f0f0f0; /* Hellerer Hintergrund statt Dunkelgrau */
-        }
-
-        /* Verhindert, dass globale CSS-Regeln die Kartenkacheln auf 0px schrumpfen */
-        .leaflet-container img { 
-            max-width: none !important; 
-            max-height: none !important; 
-        }
-
-        .overlay {
-            position: absolute; top: 10px; left: 50px; z-index: 1000;
-            background: white; padding: 10px; border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-family: sans-serif;
-        }
-        button { cursor: pointer; padding: 8px 12px; font-weight: bold; }
+        #map { height: 100vh; }
+        body { margin: 0; }
     </style>
 </head>
 <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Karte initialisieren
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-<div class="overlay">
-    <button id="editBtn">📍 Standort korrigieren</button>
-    <div id="status" style="font-size: 11px; margin-top: 5px;">Suche GPS...</div>
-</div>
-
-<div id="map"></div>
-
-<script>
-    // 2. Karte initialisieren
-    var map = L.map('map').setView([51.16, 10.45], 5);
-
-    // 3. Karten-Layer (Tiles) hinzufügen
-    var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
-    var marker;
-    var isEditing = false;
-
-    // 4. FIX: Karte nach kurzer Verzögerung "aufwecken"
-    function refreshMap() {
-        map.invalidateSize();
-        console.log("Karte wurde neu berechnet.");
-    }
-    setTimeout(refreshMap, 500);
-
-    // 5. Standort-Logik
-    map.locate({setView: true, maxZoom: 16});
-
-    map.on('locationfound', function(e) {
-        document.getElementById('status').innerText = "Standort gefunden!";
-        marker = L.marker(e.latlng).addTo(map).bindPopup("Du bist hier").openPopup();
-        refreshMap(); // Erneutes Update nach GPS-Fund
-    });
-
-    map.on('locationerror', function() {
-        document.getElementById('status').innerText = "GPS Zugriff verweigert.";
-        refreshMap();
-    });
-
-    // 6. Manueller Button
-    document.getElementById('editBtn').onclick = function() {
-        if (!marker) return;
-        isEditing = !isEditing;
-        if (isEditing) {
-            marker.dragging.enable();
-            this.innerText = "✅ Speichern";
-            document.getElementById('status').innerText = "Marker jetzt verschieben!";
-        } else {
-            marker.dragging.disable();
-            this.innerText = "📍 Standort korrigieren";
-            var pos = marker.getLatLng();
-            document.getElementById('status').innerText = "Neu: " + pos.lat.toFixed(4) + ", " + pos.lng.toFixed(4);
-        }
-    };
-</script>
+        // Standort finden und Marker setzen
+        map.locate({setView: true, maxZoom: 16});
+        map.on('locationfound', e => {
+            L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
+            L.circle(e.latlng, e.accuracy / 2).addTo(map);
+        });
+    </script>
 </body>
 </html>
