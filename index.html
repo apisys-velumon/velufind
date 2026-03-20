@@ -4,74 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com" />
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; }
+        body { margin: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
         
-        /* Gelbe Kopfleiste mit brauner Schrift */
+        /* Gelbe Kopfleiste */
         .header {
             background-color: #FFD700;
             color: #5D4037;
-            padding: 10px;
-            text-align: center;
-            font-family: sans-serif;
-            font-weight: bold;
-            font-size: 20px;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             z-index: 1001;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        #map { flex-grow: 1; width: 100%; }
+        .header-title { font-weight: bold; font-size: 20px; }
 
-        .controls {
-            position: absolute; top: 60px; left: 50px; z-index: 1000;
-            background: white; padding: 5px; border: 1px solid #ccc;
+        /* Donut Button & Dropdown */
+        .dropdown { position: relative; display: inline-block; }
+
+        .donut-btn {
+            width: 35px; height: 35px;
+            background-color: transparent;
+            border: 6px solid #5D4037; /* Donut-Ring */
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; outline: none;
         }
+
+        .dropdown-content {
+            display: none;
+            position: absolute; right: 0; top: 45px;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            z-index: 2000;
+        }
+
+        .dropdown-content button {
+            width: 100%; padding: 12px 16px;
+            text-align: left; border: none;
+            background: none; cursor: pointer;
+            font-size: 14px; color: #333;
+        }
+
+        .dropdown-content button:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+
+        /* Karte */
+        #map { flex-grow: 1; width: 100%; z-index: 1; }
     </style>
 </head>
 <body>
-    <div class="header">APISYS veluFind</div>
-    
-    <div class="controls">
-        <button id="editBtn">📍 Standort korrigieren</button>
+
+    <div class="header">
+        <div class="header-title">APISYS veluFind</div>
+        <div class="dropdown">
+            <button class="donut-btn" id="menuToggle"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <button id="editBtn">📍 Standort korrigieren</button>
+            </div>
+        </div>
     </div>
+
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
         let userMarker;
         let isEditing = false;
 
+        // Standort finden
         map.locate({setView: true, maxZoom: 16});
-        
         map.on('locationfound', e => {
-            // Marker wird erstellt, der Kreis (L.circle) wurde hier entfernt
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
         });
 
-        // Button-Logik
+        // Dropdown Toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const dropdown = document.getElementById('myDropdown');
+
+        menuToggle.onclick = (e) => {
+            dropdown.classList.toggle('show');
+            e.stopPropagation();
+        };
+
+        // Menü schließen bei Klick außerhalb
+        window.onclick = () => { if (dropdown.classList.contains('show')) dropdown.classList.remove('show'); };
+
+        // Standort-Korrektur Logik
         document.getElementById('editBtn').onclick = function() {
             if (!userMarker) return;
             isEditing = !isEditing;
             
             if (isEditing) {
                 userMarker.dragging.enable();
-                this.innerText = "✅ Speichern";
-                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
+                this.innerText = "✅ Position speichern";
+                userMarker.setPopupContent("Marker jetzt verschieben!").openPopup();
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
-                const pos = userMarker.getLatLng();
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                console.log("Neue Koordinaten:", pos.lat, pos.lng);
             }
         };
 
-        // Kleiner Fix für die Kartengröße nach dem Laden
         setTimeout(() => { map.invalidateSize(); }, 200);
     </script>
 </body>
