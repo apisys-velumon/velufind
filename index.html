@@ -4,117 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* Stabiles Layout */
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
         
-        /* Gelbe Kopfleiste */
+        /* Gelbe Kopfleiste mit brauner Schrift */
         .header {
             background-color: #FFD700;
             color: #5D4037;
-            height: 60px;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 15px;
-            position: relative;
             z-index: 2000;
+            box-sizing: border-box;
+            height: 60px;
         }
 
         .header-title { font-weight: bold; font-size: 20px; }
 
-        /* Hamburger Menü Icon */
-        .menu-btn {
-            background: none; border: none; cursor: pointer;
-            display: flex; flex-direction: column; gap: 4px; padding: 10px;
+        /* Donut Button Design */
+        .donut-btn {
+            width: 34px; height: 34px;
+            background: transparent;
+            border: 6px solid #5D4037; /* Der "Donut-Ring" */
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .bar { width: 25px; height: 3px; background-color: #5D4037; border-radius: 2px; }
 
-        /* Karte - nimmt den restlichen Platz ein */
-        #map { height: calc(100vh - 60px); width: 100%; position: relative; z-index: 1; }
-
-        /* Dropdown Menü */
-        #myDropdown {
+        /* Pulldown Menü */
+        .dropdown-menu {
             display: none;
-            position: absolute; top: 60px; right: 10px;
-            background: white; border: 1px solid #ccc;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 3000; min-width: 180px; border-radius: 4px;
+            position: absolute;
+            top: 65px; right: 15px;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 3000;
+            border-radius: 4px;
+            overflow: hidden;
         }
-        #myDropdown button {
-            width: 100%; padding: 15px; border: none;
-            background: none; text-align: left; cursor: pointer; font-size: 14px;
+
+        .dropdown-menu button {
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
         }
-        #myDropdown button:hover { background: #f0f0f0; }
+
+        .dropdown-menu button:hover { background: #f0f0f0; }
+
+        #map { flex-grow: 1; width: 100%; z-index: 1; }
     </style>
 </head>
 <body>
-
     <div class="header">
         <div class="header-title">APISYS veluFind</div>
-        <button class="menu-btn" id="menuToggle">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </button>
+        <button class="donut-btn" id="menuToggle"></button>
     </div>
-
-    <div id="myDropdown">
+    
+    <div id="myDropdown" class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
     </div>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Karte initialisieren
-        const map = L.map('map').setView([51.16, 10.45], 6);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
         let userMarker;
         let isEditing = false;
 
-        // 2. Standort finden
         map.locate({setView: true, maxZoom: 16});
+        
         map.on('locationfound', e => {
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
-            map.invalidateSize(); // Erzwingt Kartenanzeige
         });
 
-        // 3. Menü-Logik (Hamburger)
-        const menuToggle = document.getElementById('menuToggle');
+        // Menü Logik
+        const menuBtn = document.getElementById('menuToggle');
         const dropdown = document.getElementById('myDropdown');
 
-        menuToggle.onclick = (e) => {
-            dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
+        menuBtn.onclick = (e) => {
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
             e.stopPropagation();
         };
 
-        // Schließen beim Klick auf die Karte
-        map.on('click', () => { dropdown.style.display = 'none'; });
+        // Überall klicken zum Schließen
+        window.onclick = () => { dropdown.style.display = 'none'; };
 
-        // 4. Korrektur-Logik
-        document.getElementById('editBtn').onclick = function() {
+        // Button-Logik innerhalb des Menüs
+        document.getElementById('editBtn').onclick = function(e) {
+            e.stopPropagation(); // Verhindert Schließen beim Klick auf Button
             if (!userMarker) return;
             isEditing = !isEditing;
             
             if (isEditing) {
                 userMarker.dragging.enable();
-                this.innerText = "✅ Position speichern";
-                userMarker.setPopupContent("Marker jetzt verschieben!").openPopup();
+                this.innerText = "✅ Speichern";
+                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                dropdown.style.display = 'none';
+                dropdown.style.display = 'none'; // Menü nach Speichern schließen
             }
         };
 
-        // FIX: Karte beim Start erzwingen
-        window.onload = () => { setTimeout(() => { map.invalidateSize(); }, 400); };
+        setTimeout(() => { map.invalidateSize(); }, 300);
     </script>
 </body>
 </html>
