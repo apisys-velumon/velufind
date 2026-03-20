@@ -8,24 +8,54 @@
     <style>
         #map { height: 100vh; }
         body { margin: 0; }
+        /* Kleines Overlay für den Button */
+        .controls {
+            position: absolute; top: 10px; left: 50px; z-index: 1000;
+            background: white; padding: 5px; border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
+    <div class="controls">
+        <button id="editBtn">📍 Standort korrigieren</button>
+    </div>
     <div id="map"></div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Karte initialisieren
         const map = L.map('map').setView([51.505, -0.09], 13);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // Standort finden und Marker setzen
+        let userMarker;
+        let isEditing = false;
+
         map.locate({setView: true, maxZoom: 16});
+        
         map.on('locationfound', e => {
-            L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
+            // Marker speichern, damit wir ihn später bewegen können
+            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
             L.circle(e.latlng, e.accuracy / 2).addTo(map);
         });
+
+        // Button-Logik
+        document.getElementById('editBtn').onclick = function() {
+            if (!userMarker) return;
+            isEditing = !isEditing;
+            
+            if (isEditing) {
+                userMarker.dragging.enable();
+                this.innerText = "✅ Speichern";
+                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
+            } else {
+                userMarker.dragging.disable();
+                this.innerText = "📍 Standort korrigieren";
+                const pos = userMarker.getLatLng();
+                userMarker.setPopupContent("Position gespeichert!").openPopup();
+                console.log("Neue Koordinaten:", pos.lat, pos.lng);
+            }
+        };
     </script>
 </body>
 </html>
