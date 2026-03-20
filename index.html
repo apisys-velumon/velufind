@@ -6,74 +6,51 @@
     <title>APISYS veluFind</title>
     <link rel="stylesheet" href="https://unpkg.com" />
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+        /* Stabiles Layout */
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
         
         /* Gelbe Kopfleiste */
         .header {
             background-color: #FFD700;
             color: #5D4037;
-            padding: 10px 15px;
+            height: 60px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 15px;
+            position: relative;
             z-index: 2000;
-            height: 60px;
-            box-sizing: border-box;
         }
 
         .header-title { font-weight: bold; font-size: 20px; }
 
-        /* Hamburger Menü Button */
+        /* Hamburger Menü Icon */
         .menu-btn {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 4px;
-            padding: 10px;
+            background: none; border: none; cursor: pointer;
+            display: flex; flex-direction: column; gap: 4px; padding: 10px;
         }
+        .bar { width: 25px; height: 3px; background-color: #5D4037; border-radius: 2px; }
 
-        /* Die drei Hamburger-Striche */
-        .bar {
-            width: 25px;
-            height: 3px;
-            background-color: #5D4037;
-            border-radius: 2px;
-        }
+        /* Karte - nimmt den restlichen Platz ein */
+        #map { height: calc(100vh - 60px); width: 100%; position: relative; z-index: 1; }
 
-        /* Pulldown Menü */
-        .dropdown-menu {
+        /* Dropdown Menü */
+        #myDropdown {
             display: none;
-            position: absolute;
-            top: 60px; right: 15px;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 3000;
-            border-radius: 4px;
+            position: absolute; top: 60px; right: 10px;
+            background: white; border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 3000; min-width: 180px; border-radius: 4px;
         }
-
-        .dropdown-menu button {
-            width: 100%;
-            padding: 12px 20px;
-            border: none;
-            background: none;
-            text-align: left;
-            cursor: pointer;
-            font-size: 14px;
-            color: #333;
-            white-space: nowrap;
+        #myDropdown button {
+            width: 100%; padding: 15px; border: none;
+            background: none; text-align: left; cursor: pointer; font-size: 14px;
         }
-
-        .dropdown-menu button:hover { background: #f0f0f0; }
-
-        #map { flex-grow: 1; width: 100%; z-index: 1; }
+        #myDropdown button:hover { background: #f0f0f0; }
     </style>
 </head>
 <body>
+
     <div class="header">
         <div class="header-title">APISYS veluFind</div>
         <button class="menu-btn" id="menuToggle">
@@ -82,8 +59,8 @@
             <div class="bar"></div>
         </button>
     </div>
-    
-    <div id="myDropdown" class="dropdown-menu">
+
+    <div id="myDropdown">
         <button id="editBtn">📍 Standort korrigieren</button>
     </div>
 
@@ -91,7 +68,8 @@
 
     <script src="https://unpkg.com"></script>
     <script>
-        const map = L.map('map').setView([51.505, -0.09], 13);
+        // 1. Karte initialisieren
+        const map = L.map('map').setView([51.16, 10.45], 6);
         L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
@@ -99,33 +77,34 @@
         let userMarker;
         let isEditing = false;
 
+        // 2. Standort finden
         map.locate({setView: true, maxZoom: 16});
-        
         map.on('locationfound', e => {
             userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
+            map.invalidateSize(); // Erzwingt Kartenanzeige
         });
 
-        // Menü Logik
-        const menuBtn = document.getElementById('menuToggle');
+        // 3. Menü-Logik (Hamburger)
+        const menuToggle = document.getElementById('menuToggle');
         const dropdown = document.getElementById('myDropdown');
 
-        menuBtn.onclick = (e) => {
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        menuToggle.onclick = (e) => {
+            dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
             e.stopPropagation();
         };
 
-        window.onclick = () => { dropdown.style.display = 'none'; };
+        // Schließen beim Klick auf die Karte
+        map.on('click', () => { dropdown.style.display = 'none'; });
 
-        // Standort-Korrektur Logik
-        document.getElementById('editBtn').onclick = function(e) {
-            e.stopPropagation();
+        // 4. Korrektur-Logik
+        document.getElementById('editBtn').onclick = function() {
             if (!userMarker) return;
             isEditing = !isEditing;
             
             if (isEditing) {
                 userMarker.dragging.enable();
-                this.innerText = "✅ Speichern";
-                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
+                this.innerText = "✅ Position speichern";
+                userMarker.setPopupContent("Marker jetzt verschieben!").openPopup();
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
@@ -134,7 +113,8 @@
             }
         };
 
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        // FIX: Karte beim Start erzwingen
+        window.onload = () => { setTimeout(() => { map.invalidateSize(); }, 400); };
     </script>
 </body>
 </html>
