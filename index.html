@@ -1,32 +1,64 @@
-html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standort auf Karte</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>Standort Korrektur</title>
+    <link rel="stylesheet" href="https://unpkg.com" />
     <style>
         #map { height: 100vh; }
-        body { margin: 0; }
+        body { margin: 0; padding: 0; }
+        .controls {
+            position: absolute; top: 10px; left: 50px; z-index: 1000;
+            background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        button { cursor: pointer; padding: 5px 10px; }
     </style>
 </head>
 <body>
+    <div class="controls">
+        <button id="editBtn">📍 Standort manuell korrigieren</button>
+        <span id="status"></span>
+    </div>
     <div id="map"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://unpkg.com"></script>
     <script>
-        // Karte initialisieren
-        const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        const map = L.map('map').setView([51.5, -0.1], 13);
+        let userMarker, accuracyCircle;
+        let isEditing = false;
+
+        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // Standort finden und Marker setzen
+        // Automatische Ortung
         map.locate({setView: true, maxZoom: 16});
+
         map.on('locationfound', e => {
-            L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
-            L.circle(e.latlng, e.accuracy / 2).addTo(map);
+            userMarker = L.marker(e.latlng, {draggable: false}).addTo(map)
+                .bindPopup("Dein geschätzter Standort").openPopup();
+            accuracyCircle = L.circle(e.latlng, e.accuracy / 2).addTo(map);
         });
+
+        // Button-Logik
+        const btn = document.getElementById('editBtn');
+        btn.onclick = () => {
+            isEditing = !isEditing;
+            if (isEditing) {
+                userMarker.dragging.enable();
+                btn.innerText = "✅ Position speichern";
+                btn.style.background = "#d4edda";
+                document.getElementById('status').innerText = "Marker jetzt ziehen!";
+            } else {
+                userMarker.dragging.disable();
+                btn.innerText = "📍 Standort manuell korrigieren";
+                btn.style.background = "";
+                const pos = userMarker.getLatLng();
+                document.getElementById('status').innerText = `Gespeichert: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
+                if(accuracyCircle) map.removeLayer(accuracyCircle); // Kreis entfernen, da manuell gesetzt
+            }
+        };
     </script>
 </body>
 </html>
