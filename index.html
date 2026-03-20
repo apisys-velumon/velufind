@@ -8,7 +8,6 @@
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
         
-        /* Gelbe Kopfleiste mit brauner Schrift */
         .header {
             background-color: #FFD700;
             color: #5D4037;
@@ -23,7 +22,7 @@
 
         .header-title { font-weight: bold; font-size: 20px; }
 
-        /* Hamburger Button Design */
+        /* Hamburger Button Design & Animation */
         .hamburger-btn {
             width: 30px;
             height: 24px;
@@ -35,18 +34,31 @@
             flex-direction: column;
             justify-content: space-between;
             box-sizing: border-box;
+            position: relative;
         }
 
-        /* Die drei Hamburger-Striche */
         .hamburger-btn span {
             display: block;
             height: 4px;
             width: 100%;
             background-color: #5D4037;
             border-radius: 2px;
+            transition: all 0.3s ease-in-out;
+            position: relative;
         }
 
-        /* Pulldown Menü */
+        /* Transformation zum X */
+        .hamburger-btn.open span:nth-child(1) {
+            transform: translateY(10px) rotate(45deg);
+        }
+        .hamburger-btn.open span:nth-child(2) {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        .hamburger-btn.open span:nth-child(3) {
+            transform: translateY(-10px) rotate(-45deg);
+        }
+
         .dropdown-menu {
             display: none;
             position: absolute;
@@ -112,13 +124,17 @@
         const dropdown = document.getElementById('myDropdown');
 
         menuBtn.onclick = (e) => {
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            const isOpen = dropdown.style.display === 'block';
+            dropdown.style.display = isOpen ? 'none' : 'block';
+            menuBtn.classList.toggle('open'); // Toggle für X-Animation
             e.stopPropagation();
         };
 
-        window.onclick = () => { dropdown.style.display = 'none'; };
+        window.onclick = () => { 
+            dropdown.style.display = 'none'; 
+            menuBtn.classList.remove('open'); // Icon zurücksetzen
+        };
 
-        // Button-Logik innerhalb des Menüs
         document.getElementById('editBtn').onclick = function(e) {
             e.stopPropagation();
             if (!userMarker) return;
@@ -133,6 +149,7 @@
                 this.innerText = "📍 Standort korrigieren";
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
                 dropdown.style.display = 'none';
+                menuBtn.classList.remove('open'); // Icon nach Speichern zurücksetzen
             }
         };
 
