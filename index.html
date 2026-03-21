@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
         .header { background-color: #FFD700; color: #5D4037; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; }
@@ -45,7 +45,7 @@
     <div class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
         <button id="pathBtn">➕ Pfad</button>
-        <button id="correctDirBtn">🧭 Richtung korrigieren</button>
+        <button id="correctionBtn">🧭 Richtungskorrektur</button>
     </div>
 
     <div id="pathModal" class="input-overlay">
@@ -81,12 +81,12 @@
         <div id="map"></div>
     </div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const checkbox = document.getElementById('menu-checkbox');
         const mapElement = document.getElementById('map');
         const map = L.map('map', { tap: false, zoomControl: false }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let userMarker, distanceCircle, directionLine;
@@ -96,29 +96,6 @@
         map.on('locationfound', e => { 
             if(!userMarker) userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); 
         });
-
-        // Menü-Steuerung
-        const pathModal = document.getElementById('pathModal');
-        const directionModal = document.getElementById('directionModal');
-
-        document.getElementById('pathBtn').onclick = () => {
-            pathModal.style.display = 'flex';
-            checkbox.checked = false;
-        };
-
-        document.getElementById('correctDirBtn').onclick = () => {
-            directionModal.style.display = 'flex';
-            checkbox.checked = false;
-        };
-
-        document.getElementById('confirmDirection').onclick = () => {
-            directionModal.style.display = 'none';
-            // Hier kann später die Logik zum Zeichnen des Vektors ergänzt werden
-        };
-
-        document.getElementById('submitFlight').onclick = () => {
-            pathModal.style.display = 'none';
-        };
 
         function handleOrientation(e) {
             if (!sensorRunning) return;
@@ -141,6 +118,14 @@
             currentHeading = (currentHeading + val + 360) % 360;
             updateHeadingUI();
         }
+
+        const pathModal = document.getElementById('pathModal'), directionModal = document.getElementById('directionModal');
+        const minInput = document.getElementById('flightMinInput'), sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
+
+        document.getElementById('pathBtn').onclick = () => { pathModal.style.display = 'flex'; checkbox.checked = false; };
+        document.getElementById('correctionBtn').onclick = () => { directionModal.style.display = 'flex'; checkbox.checked = false; };
+        document.getElementById('submitFlight').onclick = () => { pathModal.style.display = 'none'; };
+        document.getElementById('confirmDirection').onclick = () => { directionModal.style.display = 'none'; };
 
         document.getElementById('activateCompass').onclick = function() {
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
