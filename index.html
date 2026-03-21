@@ -27,7 +27,6 @@
         #calculationResult, #directionValue { margin: 10px 0; padding: 12px; font-weight: bold; background: #f9f9f9; border-radius: 4px; font-size: 18px; }
         .submit-btn { width: 100%; padding: 12px; background: #FFD700; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
         
-        /* Styles für die Richtungs-Buttons */
         .stepper-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 10px 0; }
         .step-btn { width: 45px; height: 45px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; }
 
@@ -36,12 +35,9 @@
 </head>
 <body>
     <input type="checkbox" id="menu-checkbox">
-
     <div class="header">
         <div class="header-title">APISYS veluFind</div>
-        <label for="menu-checkbox" class="hamburger-btn">
-            <span></span><span></span><span></span>
-        </label>
+        <label for="menu-checkbox" class="hamburger-btn"><span></span><span></span><span></span></label>
     </div>
 
     <div class="dropdown-menu">
@@ -49,7 +45,6 @@
         <button id="pathBtn">➕ Pfad</button>
     </div>
 
-    <!-- Erstes Fenster: Entfernung -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
@@ -64,7 +59,6 @@
         </div>
     </div>
 
-    <!-- Zweites Fenster: Richtung -->
     <div id="directionModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Richtung</label>
@@ -88,7 +82,7 @@
         let userMarker, distanceCircle, directionLine;
         let isEditing = false;
         let currentHeading = 180;
-        let sensorActive = false;
+        let manualOverride = false;
 
         map.locate({setView: true, maxZoom: 16});
         map.on('locationfound', e => { 
@@ -96,33 +90,33 @@
         });
 
         // Kompass-Logik
-        window.addEventListener('deviceorientationabsolute', (e) => {
+        const handleOrientation = (e) => {
+            if (manualOverride) return;
             let heading = e.webkitCompassHeading || (360 - e.alpha);
-            if (heading && !sensorActive) {
+            if (heading) {
                 currentHeading = Math.round(heading);
                 updateHeadingUI();
             }
-        }, true);
+        };
+
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        window.addEventListener('deviceorientation', handleOrientation, true);
 
         function updateHeadingUI() {
             document.getElementById('directionValue').innerText = currentHeading + "°";
         }
 
         function adjustHeading(val) {
-            sensorActive = true; // Manuelle Steuerung übernimmt
+            manualOverride = true; 
             currentHeading = (currentHeading + val + 360) % 360;
             updateHeadingUI();
         }
 
-        const pathModal = document.getElementById('pathModal');
-        const directionModal = document.getElementById('directionModal');
-        const minInput = document.getElementById('flightMinInput');
-        const sekInput = document.getElementById('flightSekInput');
-        const resultDiv = document.getElementById('calculationResult');
+        const pathModal = document.getElementById('pathModal'), directionModal = document.getElementById('directionModal');
+        const minInput = document.getElementById('flightMinInput'), sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
 
         function calculateDistance() {
-            const min = parseInt(minInput.value) || 0;
-            const sek = parseInt(sekInput.value) || 0;
+            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
             let total = (((min * 60) + sek) - 45) / 2;
             return total < 0 ? 0 : total;
         }
@@ -133,7 +127,7 @@
         document.getElementById('submitFlight').onclick = function() {
             pathModal.style.display = 'none';
             directionModal.style.display = 'flex';
-            // iOS Permission Check (für Safari nötig)
+            manualOverride = false; 
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission();
             }
@@ -144,8 +138,6 @@
             if (distance > 0 && userMarker) {
                 const start = userMarker.getLatLng();
                 const angle = (currentHeading * Math.PI) / 180;
-                
-                // Endpunkt des Vektors berechnen
                 const dLat = (distance * Math.cos(angle)) / 111320;
                 const dLon = (distance * Math.sin(angle)) / (111320 * Math.cos(start.lat * Math.PI / 180));
                 const end = [start.lat + dLat, start.lng + dLon];
@@ -155,20 +147,14 @@
 
                 distanceCircle = L.circle(start, { radius: distance, color: '#5D4037', fillOpacity: 0.1 }).addTo(map);
                 directionLine = L.polyline([start, end], { color: 'red', weight: 4 }).addTo(map);
-                
                 map.fitBounds(distanceCircle.getBounds());
             }
             directionModal.style.display = 'none';
         };
 
-        document.getElementById('pathBtn').onclick = () => { 
-            checkbox.checked = false;
-            pathModal.style.display = 'flex'; 
-        };
-
+        document.getElementById('pathBtn').onclick = () => { checkbox.checked = false; pathModal.style.display = 'flex'; };
         document.getElementById('editBtn').onclick = function() {
             checkbox.checked = false;
-            if (!userMarker) return;
             isEditing = !isEditing;
             isEditing ? userMarker.dragging.enable() : userMarker.dragging.disable();
             this.innerText = isEditing ? "✅ Speichern" : "📍 Standort korrigieren";
