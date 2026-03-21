@@ -156,8 +156,8 @@
         function calculateTotal() {
             const min = parseInt(minInput.value) || 0;
             const sek = parseInt(sekInput.value) || 0;
-            const total = (min * 60) + sek;
-            resultDiv.innerText = "Gesamt: " + total + " Sekunden";
+            const total = (((min * 60) + sek)- 45) /2;
+            resultDiv.innerText = "Entfernung: " + total + " m";
         }
 
         minInput.oninput = calculateTotal;
