@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet mit Rotation-Plugin Unterstützung -->
+    <link rel="stylesheet" href="https://unpkg.com" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
         .header { background-color: #FFD700; color: #5D4037; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; }
@@ -46,6 +47,7 @@
         <button id="pathBtn">➕ Pfad</button>
     </div>
 
+    <!-- Modals (Path & Direction) -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
@@ -77,11 +79,12 @@
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com"></script>
     <script>
         const checkbox = document.getElementById('menu-checkbox');
-        const map = L.map('map', { tap: false }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        // Initialisierung
+        const map = L.map('map', { tap: false, rotate: true }).setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
 
         let userMarker, distanceCircle, directionLine;
         let isEditing = false, currentHeading = 180, manualOverride = false, sensorActive = false;
@@ -91,12 +94,17 @@
             if(!userMarker) userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); 
         });
 
+        // Zentrale Ausrichtungs-Funktion
         function handleOrientation(e) {
-            if (manualOverride) return;
             let heading = e.webkitCompassHeading || (360 - e.alpha);
             if (heading) {
-                currentHeading = Math.round(heading);
-                updateHeadingUI();
+                // Kartenrotation ständig aktualisieren
+                map.getContainer().style.transform = `rotate(${-heading}deg)`;
+                
+                if (!manualOverride) {
+                    currentHeading = Math.round(heading);
+                    updateHeadingUI();
+                }
                 sensorActive = true;
                 document.getElementById('activateCompass').style.display = 'none';
             }
