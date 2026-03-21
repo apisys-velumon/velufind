@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>APISYS veluFind</title>
-    <!-- Leaflet mit Rotation-Plugin Unterstützung -->
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
         .header { background-color: #FFD700; color: #5D4037; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; }
@@ -30,9 +29,10 @@
         
         .stepper-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 10px 0; }
         .step-btn { width: 45px; height: 45px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; }
-        .sensor-btn { background: #eee; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; cursor: pointer; }
+        .sensor-btn { background: #eee; border: 1px solid #ccc; padding: 10px; border-radius: 4px; font-size: 14px; margin-bottom: 15px; cursor: pointer; font-weight: bold; width: 100%; }
 
-        #map { flex-grow: 1; width: 100%; z-index: 1; margin-top: 60px; }
+        #map-container { flex-grow: 1; width: 100%; margin-top: 60px; overflow: hidden; position: relative; }
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transition: transform 0.1s linear; }
     </style>
 </head>
 <body>
@@ -47,7 +47,6 @@
         <button id="pathBtn">➕ Pfad</button>
     </div>
 
-    <!-- Modals (Path & Direction) -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
@@ -77,14 +76,17 @@
         </div>
     </div>
 
-    <div id="map"></div>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const checkbox = document.getElementById('menu-checkbox');
-        // Initialisierung
-        const map = L.map('map', { tap: false, rotate: true }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        const mapElement = document.getElementById('map');
+        const map = L.map('map', { tap: false, zoomControl: false }).setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let userMarker, distanceCircle, directionLine;
         let isEditing = false, currentHeading = 180, manualOverride = false, sensorActive = false;
@@ -94,12 +96,11 @@
             if(!userMarker) userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); 
         });
 
-        // Zentrale Ausrichtungs-Funktion
         function handleOrientation(e) {
             let heading = e.webkitCompassHeading || (360 - e.alpha);
             if (heading) {
-                // Kartenrotation ständig aktualisieren
-                map.getContainer().style.transform = `rotate(${-heading}deg)`;
+                // Karte rotieren (Gegenrichtung des Kompass für North-Up)
+                mapElement.style.transform = `rotate(${-heading}deg)`;
                 
                 if (!manualOverride) {
                     currentHeading = Math.round(heading);
@@ -137,7 +138,6 @@
             pathModal.style.display = 'none';
             directionModal.style.display = 'flex';
             manualOverride = false;
-            if (sensorActive) document.getElementById('activateCompass').style.display = 'none';
         };
 
         document.getElementById('confirmDirection').onclick = function() {
