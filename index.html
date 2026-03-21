@@ -77,18 +77,7 @@
         </div>
     </div>
 
-     <div id="correctionModal" class="input-overlay">
-        <div class="input-box">
-            <label style="font-weight: bold;">Richtung korrigieren</label>
-            
-            <div class="stepper-row">
-                <button class="step-btn" onclick="adjustHeading(-5)">-</button>
-                <div id="directionValue">180°</div>
-                <button class="step-btn" onclick="adjustHeading(5)">+</button>
-            </div>
-            <button class="submit-btn" id="confirmDirection">Vektor zeichnen</button>
-        </div>
-    </div>
+
 
     <div id="map-container">
         <div id="map"></div>
@@ -191,13 +180,16 @@
         minInput.oninput = () => resultDiv.innerText = "Entfernung: " + calculateDistance() + " m";
         sekInput.oninput = minInput.oninput;
 
-        document.getElementById('pathBtn').onclick = () => { checkbox.checked = false; pathModal.style.display = 'flex'; };
+        document.getElementById('pathBtn').onclick = () => { 
+            checkbox.checked = false; 
+            pathModal.style.display = 'flex'; };
         document.getElementById('editBtn').onclick = function() {
             checkbox.checked = false;
             isEditing = !isEditing;
             isEditing ? userMarker.dragging.enable() : userMarker.dragging.disable();
             this.innerText = isEditing ? "✅ Speichern" : "📍 Standort korrigieren";
         };
+
 
         setTimeout(() => { map.invalidateSize(); }, 400);
     </script>
