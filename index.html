@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
         .header { background-color: #FFD700; color: #5D4037; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; }
@@ -18,19 +18,12 @@
         .dropdown-menu { position: fixed; top: 60px; right: 15px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 4999; border-radius: 4px; display: none; flex-direction: column; }
         #menu-checkbox:checked ~ .dropdown-menu { display: flex; }
         .dropdown-menu button { width: 100%; padding: 15px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 16px; white-space: nowrap; }
-        
         .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 6000; justify-content: center; align-items: center; }
-        .input-box { background: white; padding: 20px; border-radius: 8px; width: fit-content; min-width: 240px; text-align: center; box-sizing: border-box; }
-        .label-grid { display: grid; grid-template-columns: 4.5em 10px 4.5em; gap: 10px; justify-content: center; font-size: 0.85em; color: #5D4037; margin-bottom: 5px; }
-        .input-row { display: flex; gap: 10px; margin: 5px 0 15px 0; align-items: center; justify-content: center; }
-        input { width: 4.5em; padding: 10px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
-        #calculationResult, #compassDisplay { width: 100%; margin-bottom: 15px; padding: 10px; font-weight: bold; background: #f9f9f9; border-radius: 4px; box-sizing: border-box; color: #5D4037; }
-        .submit-btn { width: 100%; padding: 12px; background: #FFD700; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; color: #5D4037; font-size: 16px; }
-        
-        /* Compass Modal spezifisch */
-        .compass-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 15px; }
-        .nav-btn { width: 45px; height: 45px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; }
-
+        .input-box { background: white; padding: 20px; border-radius: 8px; width: fit-content; min-width: 240px; text-align: center; }
+        .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; justify-content: center; }
+        input { width: 4.5em; padding: 8px; text-align: center; font-size: 16px; border: 1px solid #ccc; }
+        #calculationResult { margin: 10px 0; padding: 8px; font-weight: bold; background: #f9f9f9; border-radius: 4px; }
+        .submit-btn { width: 100%; padding: 10px; background: #FFD700; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; margin-top: 5px; }
         #map { flex-grow: 1; width: 100%; z-index: 1; margin-top: 60px; }
     </style>
 </head>
@@ -40,120 +33,90 @@
         <div class="header-title">APISYS veluFind</div>
         <label for="menu-checkbox" class="hamburger-btn"><span></span><span></span><span></span></label>
     </div>
-
     <div class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
         <button id="pathBtn">➕ Pfad</button>
+        <button id="compassBtn">🧭 Kompass aktivieren</button>
     </div>
-
-    <!-- Modal 1: Zeit/Distanz -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
-            <div style="font-weight: bold; margin-bottom: 15px;">Flugzeit eingeben:</div>
-            <div class="label-grid"><span>Minuten</span><span></span><span>Sekunden</span></div>
+            <label style="font-weight: bold;">Flugzeit eingeben:</label>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037; white-space: pre;">Minuten       Sekunden</div>
             <div class="input-row">
-                <input type="number" id="flightMinInput" placeholder="0" min="0" max="99" inputmode="numeric">
+                <input type="number" id="flightMinInput" placeholder="Min" min="0" max="99" inputmode="numeric">
                 <span style="font-weight: bold;">:</span>
-                <input type="number" id="flightSekInput" placeholder="0" min="0" max="59" inputmode="numeric">
+                <input type="number" id="flightSekInput" placeholder="Sek" min="0" max="59" inputmode="numeric">
             </div>
             <div id="calculationResult">Entfernung: 0 m</div>
             <button class="submit-btn" id="submitFlight">OK</button>
         </div>
     </div>
-
-    <!-- Modal 2: Richtung -->
-    <div id="compassModal" class="input-overlay">
-        <div class="input-box">
-            <div style="font-weight: bold; margin-bottom: 15px;">Richtung</div>
-            <div class="compass-row">
-                <button class="nav-btn" onclick="adjustHeading(-5)">-</button>
-                <div id="compassDisplay">180°</div>
-                <button class="nav-btn" onclick="adjustHeading(5)">+</button>
-            </div>
-            <button class="submit-btn" id="confirmVector">Vektor zeichnen</button>
-        </div>
-    </div>
-
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const checkbox = document.getElementById('menu-checkbox');
         const map = L.map('map', { tap: false }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
 
-        let userMarker, distanceCircle, directionLine, isEditing = false;
-        let manualHeading = 180;
-        let sensorActive = false;
-        let lastDistance = 0;
+        let userMarker, distanceCircle, directionLine, currentHeading = 0;
+        let isEditing = false;
 
         map.locate({setView: true, maxZoom: 16});
-        map.on('locationfound', e => { if(!userMarker) userMarker = L.marker(e.latlng).addTo(map); });
+        map.on('locationfound', e => { userMarker = L.marker(e.latlng).addTo(map); });
 
-        // Kompass Sensor Logik
-        function handleOrientation(event) {
-            let heading = event.webkitCompassHeading || (360 - event.alpha);
-            if (heading) {
-                manualHeading = Math.round(heading);
-                document.getElementById('compassDisplay').innerText = manualHeading + "°";
-                sensorActive = true;
-            }
+        // Kompass-Logik
+        window.addEventListener('deviceorientationabsolute', handler, true);
+        window.addEventListener('deviceorientation', handler, true);
+
+        function handler(e) {
+            currentHeading = e.webkitCompassHeading || (360 - e.alpha) || 0;
         }
 
-        function adjustHeading(val) {
-            sensorActive = false; // Manuelles Eingreifen deaktiviert Sensor-Anzeige im UI
-            manualHeading = (manualHeading + val + 360) % 360;
-            document.getElementById('compassDisplay').innerText = manualHeading + "°";
-        }
+        document.getElementById('compassBtn').onclick = () => {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(res => {
+                    if (res === 'granted') { alert("Kompass bereit"); checkbox.checked = false; }
+                });
+            } else { alert("Kompass aktiv"); checkbox.checked = false; }
+        };
 
-        const pathModal = document.getElementById('pathModal'), compassModal = document.getElementById('compassModal');
-        const minInput = document.getElementById('flightMinInput'), sekInput = document.getElementById('flightSekInput');
-        const resultDiv = document.getElementById('calculationResult');
+        const modal = document.getElementById('pathModal'), minInput = document.getElementById('flightMinInput'), 
+              sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
 
         function calculateTotal() {
             const min = parseInt(minInput.value) || 0;
             const sek = parseInt(sekInput.value) || 0;
             let total = (((min * 60) + sek) - 45) / 2;
-            lastDistance = total < 0 ? 0 : total;
-            resultDiv.innerText = "Entfernung: " + lastDistance + " m";
+            return total < 0 ? 0 : total;
         }
 
-        minInput.oninput = calculateTotal;
-        sekInput.oninput = calculateTotal;
+        minInput.oninput = () => { resultDiv.innerText = "Entfernung: " + calculateTotal() + " m"; };
+        sekInput.oninput = minInput.oninput;
 
-        document.getElementById('submitFlight').onclick = () => {
-            pathModal.style.display = 'none';
-            compassModal.style.display = 'flex';
-            
-            // iOS Permission Request
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(response => {
-                    if (response == 'granted') window.addEventListener('deviceorientation', handleOrientation);
-                });
-            } else {
-                window.addEventListener('deviceorientation', handleOrientation);
-            }
-        };
+        document.getElementById('pathBtn').onclick = () => { checkbox.checked = false; modal.style.display = 'flex'; };
 
-        document.getElementById('confirmVector').onclick = () => {
-            if (lastDistance > 0 && userMarker) {
+        document.getElementById('submitFlight').onclick = function() {
+            const distance = calculateTotal();
+            if (distance > 0 && userMarker) {
                 const start = userMarker.getLatLng();
-                const angle = (manualHeading * Math.PI) / 180;
-                const dLat = (lastDistance * Math.cos(angle)) / 111320;
-                const dLon = (lastDistance * Math.sin(angle)) / (111320 * Math.cos(start.lat * Math.PI / 180));
+                // Berechnung des Endpunkts basierend auf Distanz und Heading
+                const angle = (currentHeading * Math.PI) / 180;
+                const dLat = (distance * Math.cos(angle)) / 111320;
+                const dLon = (distance * Math.sin(angle)) / (111320 * Math.cos(start.lat * Math.PI / 180));
                 const end = [start.lat + dLat, start.lng + dLon];
 
                 if (distanceCircle) map.removeLayer(distanceCircle);
                 if (directionLine) map.removeLayer(directionLine);
 
-                distanceCircle = L.circle(start, { radius: lastDistance, color: '#5D4037', fillOpacity: 0.1 }).addTo(map);
-                directionLine = L.polyline([start, end], { color: 'red', weight: 5 }).addTo(map);
+                distanceCircle = L.circle(start, { radius: distance, color: '#5D4037', fillOpacity: 0.1 }).addTo(map);
+                directionLine = L.polyline([start, end], { color: 'red', weight: 4, dashArray: '5, 10' }).addTo(map);
+                
                 map.fitBounds(distanceCircle.getBounds());
             }
-            compassModal.style.display = 'none';
+            modal.style.display = 'none';
         };
 
-        document.getElementById('pathBtn').onclick = () => { checkbox.checked = false; pathModal.style.display = 'flex'; };
         document.getElementById('editBtn').onclick = function() {
             checkbox.checked = false;
             isEditing = !isEditing;
@@ -161,6 +124,7 @@
             this.innerText = isEditing ? "✅ Speichern" : "📍 Standort korrigieren";
         };
 
+        map.on('mousedown', () => { checkbox.checked = false; });
         setTimeout(() => { map.invalidateSize(); }, 400);
     </script>
 </body>
