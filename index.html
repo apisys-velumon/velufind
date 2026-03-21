@@ -2,81 +2,101 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>APISYS veluFind</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
-        .header { background-color: #FFD700; color: #5D4037; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; box-sizing: border-box; height: 60px; }
-        .header-title { font-weight: bold; font-size: 20px; }
-        .hamburger-btn { width: 30px; height: 24px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; position: relative; }
-        .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: all 0.3s ease-in-out; position: relative; }
-        .hamburger-btn.open span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
-        .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
-        .hamburger-btn.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
-        .dropdown-menu { position: absolute; top: 65px; right: 15px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 3000; border-radius: 4px; overflow: hidden; display: block; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out, visibility 0.3s; }
-        .dropdown-menu.show { opacity: 1; visibility: visible; }
-        .dropdown-menu button { width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; white-space: nowrap; }
-        .dropdown-menu button:hover { background: #f0f0f0; }
-        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; justify-content: center; align-items: center; }
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
         
-        /* Breite der Box an den Inhalt angepasst */
-        .input-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: fit-content; min-width: 240px; text-align: center; box-sizing: border-box; }
+        /* Fixierte Kopfleiste */
+        .header { 
+            background-color: #FFD700; color: #5D4037; padding: 0 15px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; 
+        }
+        .header-title { font-weight: bold; font-size: 20px; }
+
+        /* APISYS CSS-ONLY MENU LOGIC */
+        #menu-checkbox { display: none; }
+        .hamburger-btn { width: 30px; height: 24px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+        .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: 0.3s; }
+        
+        /* Hamburger Animation */
+        #menu-checkbox:checked ~ .header .hamburger-btn span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
+        #menu-checkbox:checked ~ .header .hamburger-btn span:nth-child(2) { opacity: 0; }
+        #menu-checkbox:checked ~ .header .hamburger-btn span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
+
+        /* Dropdown CSS-Only Anzeige */
+        .dropdown-menu { 
+            position: fixed; top: 60px; right: 15px; background: white; 
+            border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+            z-index: 4999; border-radius: 4px; overflow: hidden;
+            display: none; flex-direction: column;
+        }
+        #menu-checkbox:checked ~ .dropdown-menu { display: flex; }
+        
+        .dropdown-menu button { width: 100%; padding: 15px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 16px; white-space: nowrap; }
+        .dropdown-menu button:hover { background: #f0f0f0; }
+
+        /* Overlay & Box */
+        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 6000; justify-content: center; align-items: center; }
+        .input-box { background: white; padding: 20px; border-radius: 8px; width: fit-content; min-width: 240px; text-align: center; }
         .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; justify-content: center; }
         
-        #flightMinInput, #flightSekInput { width: 4.5em !important; padding: 8px; box-sizing: border-box; text-align: center; }
-        
-        #calculationResult { width: 100%; box-sizing: border-box; margin: 10px 0; padding: 8px; font-weight: bold; color: #5D4037; text-align: center; background: #f9f9f9; border-radius: 4px; }
-        
-        .input-box button { width: 100%; box-sizing: border-box; padding: 10px; background: #FFD700; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
-        
-        #map { flex-grow: 1; width: 100%; z-index: 1; }
+        input { width: 4.5em; padding: 8px; text-align: center; font-size: 16px; border: 1px solid #ccc; }
+        #calculationResult { margin: 10px 0; padding: 8px; font-weight: bold; background: #f9f9f9; border-radius: 4px; }
+        .submit-btn { width: 100%; padding: 10px; background: #FFD700; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
+
+        #map { flex-grow: 1; width: 100%; z-index: 1; margin-top: 60px; }
     </style>
 </head>
 <body>
+    <!-- Hidden Checkbox für das CSS-Menü -->
+    <input type="checkbox" id="menu-checkbox">
+
     <div class="header">
         <div class="header-title">APISYS veluFind</div>
-        <button class="hamburger-btn" id="menuToggle"><span></span><span></span><span></span></button>
+        <label for="menu-checkbox" class="hamburger-btn">
+            <span></span><span></span><span></span>
+        </label>
     </div>
-    <div id="myDropdown" class="dropdown-menu">
+
+    <div class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
         <button id="pathBtn">➕ Pfad</button>
     </div>
+
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
-            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037;">   Minuten       Sekunden</div>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037; white-space: pre;">Minuten       Sekunden</div>
             <div class="input-row">
-                <input type="number" id="flightMinInput" placeholder="Min" min="0" max="99">
+                <input type="number" id="flightMinInput" placeholder="Min" min="0" max="99" inputmode="numeric">
                 <span style="font-weight: bold;">:</span>
-                <input type="number" id="flightSekInput" placeholder="Sek" min="0" max="59">
+                <input type="number" id="flightSekInput" placeholder="Sek" min="0" max="59" inputmode="numeric">
             </div>
             <div id="calculationResult">Entfernung: 0 m</div>
-            <button id="submitFlight">OK</button>
+            <button class="submit-btn" id="submitFlight">OK</button>
         </div>
     </div>
+
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        const checkbox = document.getElementById('menu-checkbox');
+        const map = L.map('map', { tap: false }).setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
 
-        let userMarker, distanceCircle;
-        let isEditing = false;
+        let userMarker, distanceCircle, isEditing = false;
 
-        map.on('popupopen', () => { setTimeout(() => { map.closePopup(); }, 1000); });
         map.locate({setView: true, maxZoom: 16});
         map.on('locationfound', e => { userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); });
 
-        const menuBtn = document.getElementById('menuToggle'), dropdown = document.getElementById('myDropdown');
-        const modal = document.getElementById('pathModal'), minInput = document.getElementById('flightMinInput');
-        const sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
+        const modal = document.getElementById('pathModal'), minInput = document.getElementById('flightMinInput'), 
+              sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
 
         function calculateTotal() {
-            if (minInput.value.length > 3) minInput.value = minInput.value.slice(0, 3);
-            if (sekInput.value.length > 3) sekInput.value = sekInput.value.slice(0, 3);
-            
             const min = parseInt(minInput.value) || 0;
             const sek = parseInt(sekInput.value) || 0;
             let total = (((min * 60) + sek) - 45) / 2;
@@ -88,43 +108,41 @@
         minInput.oninput = calculateTotal;
         sekInput.oninput = calculateTotal;
 
-        menuBtn.onclick = (e) => { dropdown.classList.toggle('show'); menuBtn.classList.toggle('open'); e.stopPropagation(); };
-        window.onclick = (e) => { if (!isEditing && !modal.contains(e.target)) { dropdown.classList.remove('show'); menuBtn.classList.remove('open'); }};
-
-        document.getElementById('editBtn').onclick = function(e) {
-            e.stopPropagation();
+        // Buttons schließen das CSS-Menü über die Checkbox
+        document.getElementById('editBtn').onclick = function() {
+            checkbox.checked = false;
             if (!userMarker) return;
             isEditing = !isEditing;
             if (isEditing) {
                 userMarker.dragging.enable();
                 this.innerText = "✅ Speichern";
-                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
             } else {
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
-                userMarker.setPopupContent("Position gespeichert!").openPopup();
-                dropdown.classList.remove('show'); menuBtn.classList.remove('open');
             }
         };
 
-        document.getElementById('pathBtn').onclick = (e) => { e.stopPropagation(); dropdown.classList.remove('show'); menuBtn.classList.remove('open'); modal.style.display = 'flex'; };
+        document.getElementById('pathBtn').onclick = () => { 
+            checkbox.checked = false;
+            modal.style.display = 'flex'; 
+        };
 
         document.getElementById('submitFlight').onclick = function() {
             const distance = calculateTotal();
             if (distance > 0 && userMarker) {
                 if (distanceCircle) map.removeLayer(distanceCircle);
                 distanceCircle = L.circle(userMarker.getLatLng(), {
-                    radius: distance,
-                    color: '#5D4037',
-                    fillColor: '#FFD700',
-                    fillOpacity: 0.3
+                    radius: distance, color: '#5D4037', fillColor: '#FFD700', fillOpacity: 0.3
                 }).addTo(map);
                 map.fitBounds(distanceCircle.getBounds());
             }
             modal.style.display = 'none';
         };
 
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        // Schließen bei Klick auf Karte
+        map.on('mousedown', () => { checkbox.checked = false; });
+
+        setTimeout(() => { map.invalidateSize(); }, 400);
     </script>
 </body>
 </html>
