@@ -32,7 +32,7 @@
         .sensor-btn { background: #eee; border: 1px solid #ccc; padding: 10px; border-radius: 4px; font-size: 14px; margin-bottom: 15px; cursor: pointer; font-weight: bold; width: 100%; }
 
         #map-container { flex-grow: 1; width: 100%; margin-top: 60px; overflow: hidden; position: relative; }
-        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transition: transform 0.1s linear; }
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     </style>
 </head>
 <body>
@@ -89,7 +89,7 @@
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let userMarker, distanceCircle, directionLine;
-        let isEditing = false, currentHeading = 180, manualOverride = false, sensorActive = false;
+        let isEditing = false, currentHeading = 180, manualOverride = false, sensorRunning = false;
 
         map.locate({setView: true, maxZoom: 16});
         map.on('locationfound', e => { 
@@ -97,17 +97,14 @@
         });
 
         function handleOrientation(e) {
+            if (!sensorRunning) return;
             let heading = e.webkitCompassHeading || (360 - e.alpha);
             if (heading) {
-                // Karte rotieren (Gegenrichtung des Kompass für North-Up)
                 mapElement.style.transform = `rotate(${-heading}deg)`;
-                
                 if (!manualOverride) {
                     currentHeading = Math.round(heading);
                     updateHeadingUI();
                 }
-                sensorActive = true;
-                document.getElementById('activateCompass').style.display = 'none';
             }
         }
 
@@ -127,10 +124,16 @@
         document.getElementById('activateCompass').onclick = function() {
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission().then(state => {
-                    if (state === 'granted') window.addEventListener('deviceorientation', handleOrientation, true);
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                        sensorRunning = true;
+                        document.getElementById('activateCompass').style.display = 'none';
+                    }
                 });
             } else {
                 window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                sensorRunning = true;
+                document.getElementById('activateCompass').style.display = 'none';
             }
         };
 
@@ -141,10 +144,11 @@
         };
 
         document.getElementById('confirmDirection').onclick = function() {
-            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
-            let distance = (((min * 60) + sek) - 45) / 2;
-            distance = distance < 0 ? 0 : distance;
+            // Rotation stoppen und Karte auf Norden zurücksetzen
+            sensorRunning = false;
+            mapElement.style.transform = "rotate(0deg)";
 
+            const distance = calculateDistance();
             if (distance > 0 && userMarker) {
                 const start = userMarker.getLatLng();
                 const angle = (currentHeading * Math.PI) / 180;
@@ -157,10 +161,21 @@
 
                 distanceCircle = L.circle(start, { radius: distance, color: '#5D4037', fillOpacity: 0.1 }).addTo(map);
                 directionLine = L.polyline([start, end], { color: 'red', weight: 4 }).addTo(map);
+                
+                // Gesamten Pfad anzeigen
                 map.fitBounds(distanceCircle.getBounds());
             }
             directionModal.style.display = 'none';
         };
+
+        function calculateDistance() {
+            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
+            let total = (((min * 60) + sek) - 45) / 2;
+            return total < 0 ? 0 : total;
+        }
+
+        minInput.oninput = () => resultDiv.innerText = "Entfernung: " + calculateDistance() + " m";
+        sekInput.oninput = minInput.oninput;
 
         document.getElementById('pathBtn').onclick = () => { checkbox.checked = false; pathModal.style.display = 'flex'; };
         document.getElementById('editBtn').onclick = function() {
@@ -169,13 +184,6 @@
             isEditing ? userMarker.dragging.enable() : userMarker.dragging.disable();
             this.innerText = isEditing ? "✅ Speichern" : "📍 Standort korrigieren";
         };
-
-        minInput.oninput = () => {
-            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
-            let total = (((min * 60) + sek) - 45) / 2;
-            resultDiv.innerText = "Entfernung: " + (total < 0 ? 0 : total) + " m";
-        };
-        sekInput.oninput = minInput.oninput;
 
         setTimeout(() => { map.invalidateSize(); }, 400);
     </script>
