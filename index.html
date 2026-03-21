@@ -51,7 +51,7 @@
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
-            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037; white-space: pre;">Minuten       Sekunden</div>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037; white-space: pre;">Minuten           Sekunden</div>
             <div class="input-row">
                 <input type="number" id="flightMinInput" placeholder="Min" min="0" max="99" inputmode="numeric">
                 <span style="font-weight: bold;">:</span>
@@ -68,6 +68,19 @@
             <div id="sensorBox" style="margin-top:10px;">
                 <button id="activateCompass" class="sensor-btn">🧭 Kompass aktivieren</button>
             </div>
+            <div class="stepper-row">
+                <button class="step-btn" onclick="adjustHeading(-5)">-</button>
+                <div id="directionValue">180°</div>
+                <button class="step-btn" onclick="adjustHeading(5)">+</button>
+            </div>
+            <button class="submit-btn" id="confirmDirection">Vektor zeichnen</button>
+        </div>
+    </div>
+
+     <div id="correctionModal" class="input-overlay">
+        <div class="input-box">
+            <label style="font-weight: bold;">Richtung korrigieren</label>
+            
             <div class="stepper-row">
                 <button class="step-btn" onclick="adjustHeading(-5)">-</button>
                 <div id="directionValue">180°</div>
