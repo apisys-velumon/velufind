@@ -4,33 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
-        .header { background-color: #FFD700; color: #5D4037; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; box-sizing: border-box; height: 60px; }
+        
+        /* Kopfleiste fixiert */
+        .header { 
+            background-color: #FFD700; 
+            color: #5D4037; 
+            padding: 10px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            z-index: 2000; 
+            box-sizing: border-box; 
+            height: 60px; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+        }
+        
         .header-title { font-weight: bold; font-size: 20px; }
         .hamburger-btn { width: 30px; height: 24px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; position: relative; }
         .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: all 0.3s ease-in-out; position: relative; }
         .hamburger-btn.open span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
         .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
         .hamburger-btn.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
-        .dropdown-menu { position: absolute; top: 65px; right: 15px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 3000; border-radius: 4px; overflow: hidden; display: block; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out, visibility 0.3s; }
+        
+        /* Dropdown-Menü fixiert */
+        .dropdown-menu { 
+            position: fixed; 
+            top: 65px; 
+            right: 15px; 
+            background: white; 
+            border: 1px solid #ccc; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+            z-index: 3000; 
+            border-radius: 4px; 
+            overflow: hidden; 
+            display: block; 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 0.3s ease-in-out, visibility 0.3s; 
+        }
         .dropdown-menu.show { opacity: 1; visibility: visible; }
         .dropdown-menu button { width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; white-space: nowrap; }
         .dropdown-menu button:hover { background: #f0f0f0; }
-        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; justify-content: center; align-items: center; }
         
-        /* Breite der Box an den Inhalt angepasst */
+        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; justify-content: center; align-items: center; }
         .input-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: fit-content; min-width: 240px; text-align: center; box-sizing: border-box; }
         .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; justify-content: center; }
         
         #flightMinInput, #flightSekInput { width: 4.5em !important; padding: 8px; box-sizing: border-box; text-align: center; }
-        
         #calculationResult { width: 100%; box-sizing: border-box; margin: 10px 0; padding: 8px; font-weight: bold; color: #5D4037; text-align: center; background: #f9f9f9; border-radius: 4px; }
-        
         .input-box button { width: 100%; box-sizing: border-box; padding: 10px; background: #FFD700; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
         
-        #map { flex-grow: 1; width: 100%; z-index: 1; }
+        /* Karte mit Abstand nach oben wegen fixierter Leiste */
+        #map { flex-grow: 1; width: 100%; z-index: 1; margin-top: 60px; }
     </style>
 </head>
 <body>
@@ -45,7 +76,7 @@
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
-            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037;">   Minuten : Sekunden</div>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037;">Minuten:Sekunden</div>
             <div class="input-row">
                 <input type="number" id="flightMinInput" placeholder="Min" min="0" max="999">
                 <span style="font-weight: bold;">:</span>
@@ -57,10 +88,10 @@
     </div>
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
         let userMarker, distanceCircle;
         let isEditing = false;
