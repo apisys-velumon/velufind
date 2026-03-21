@@ -2,68 +2,35 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* iOS Fix: Verhindert Scrollen des Bodys */
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; }
-
-        /* Kopfleiste fixiert */
-        .header { 
-            background-color: #FFD700; 
-            color: #5D4037; 
-            padding: 0 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            z-index: 5000; 
-            height: 60px; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            box-sizing: border-box;
-        }
-        
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+        .header { background-color: #FFD700; color: #5D4037; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; box-sizing: border-box; height: 60px; }
         .header-title { font-weight: bold; font-size: 20px; }
-        .hamburger-btn { width: 30px; height: 24px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-        .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: all 0.3s; }
+        .hamburger-btn { width: 30px; height: 24px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; position: relative; }
+        .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: all 0.3s ease-in-out; position: relative; }
         .hamburger-btn.open span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
-        .hamburger-btn.open span:nth-child(2) { opacity: 0; }
+        .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
         .hamburger-btn.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
+        .dropdown-menu { position: absolute; top: 65px; right: 15px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 3000; border-radius: 4px; overflow: hidden; display: block; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out, visibility 0.3s; }
+        .dropdown-menu.show { opacity: 1; visibility: visible; }
+        .dropdown-menu button { width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; white-space: nowrap; }
+        .dropdown-menu button:hover { background: #f0f0f0; }
+        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; justify-content: center; align-items: center; }
         
-        /* Dropdown fixiert */
-        .dropdown-menu { 
-            position: fixed; 
-            top: 60px; 
-            right: 15px; 
-            background: white; 
-            border: 1px solid #ccc; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
-            z-index: 6000; 
-            border-radius: 4px; 
-            display: none;
-        }
-        .dropdown-menu.show { display: block; }
-        .dropdown-menu button { width: 100%; padding: 15px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 16px; white-space: nowrap; }
+        /* Breite der Box an den Inhalt angepasst */
+        .input-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: fit-content; min-width: 240px; text-align: center; box-sizing: border-box; }
+        .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; justify-content: center; }
         
-        /* Karte füllt den gesamten Bildschirm unter der Leiste */
-        #map { 
-            position: absolute; 
-            top: 60px; 
-            bottom: 0; 
-            width: 100%; 
-            z-index: 1; 
-        }
-
-        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 7000; justify-content: center; align-items: center; }
-        .input-box { background: white; padding: 20px; border-radius: 8px; width: fit-content; min-width: 240px; text-align: center; box-sizing: border-box; }
-        .input-row { display: flex; gap: 10px; margin: 15px 0; align-items: center; justify-content: center; }
+        #flightMinInput, #flightSekInput { width: 4.5em !important; padding: 8px; box-sizing: border-box; text-align: center; }
         
-        #flightMinInput, #flightSekInput { width: 4.5em; padding: 10px; text-align: center; font-size: 16px; border: 1px solid #ccc; }
-        #calculationResult { width: 100%; margin: 10px 0; padding: 8px; font-weight: bold; background: #f9f9f9; border-radius: 4px; box-sizing: border-box; }
-        .input-box button { width: 100%; padding: 12px; background: #FFD700; border: none; font-weight: bold; border-radius: 4px; font-size: 16px; }
+        #calculationResult { width: 100%; box-sizing: border-box; margin: 10px 0; padding: 8px; font-weight: bold; color: #5D4037; text-align: center; background: #f9f9f9; border-radius: 4px; }
+        
+        .input-box button { width: 100%; box-sizing: border-box; padding: 10px; background: #FFD700; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        
+        #map { flex-grow: 1; width: 100%; z-index: 1; }
     </style>
 </head>
 <body>
@@ -71,44 +38,36 @@
         <div class="header-title">APISYS veluFind</div>
         <button class="hamburger-btn" id="menuToggle"><span></span><span></span><span></span></button>
     </div>
-    
     <div id="myDropdown" class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
         <button id="pathBtn">➕ Pfad</button>
     </div>
-
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
-            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037;">Minuten:Sekunden</div>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037;">   Minuten : Sekunden</div>
             <div class="input-row">
-                <input type="number" id="flightMinInput" placeholder="Min" min="0" max="999" inputmode="numeric">
+                <input type="number" id="flightMinInput" placeholder="Min" min="0" max="999">
                 <span style="font-weight: bold;">:</span>
-                <input type="number" id="flightSekInput" placeholder="Sek" min="0" max="999" inputmode="numeric">
+                <input type="number" id="flightSekInput" placeholder="Sek" min="0" max="999">
             </div>
             <div id="calculationResult">Entfernung: 0 m</div>
             <button id="submitFlight">OK</button>
         </div>
     </div>
-
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Karte initialisieren
-        const map = L.map('map', { tap: false }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
         let userMarker, distanceCircle;
         let isEditing = false;
 
-        // Standort finden
+        map.on('popupopen', () => { setTimeout(() => { map.closePopup(); }, 1000); });
         map.locate({setView: true, maxZoom: 16});
-        map.on('locationfound', e => { 
-            if (!userMarker) {
-                userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
-            }
-        });
+        map.on('locationfound', e => { userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); });
 
         const menuBtn = document.getElementById('menuToggle'), dropdown = document.getElementById('myDropdown');
         const modal = document.getElementById('pathModal'), minInput = document.getElementById('flightMinInput');
@@ -117,6 +76,7 @@
         function calculateTotal() {
             if (minInput.value.length > 3) minInput.value = minInput.value.slice(0, 3);
             if (sekInput.value.length > 3) sekInput.value = sekInput.value.slice(0, 3);
+            
             const min = parseInt(minInput.value) || 0;
             const sek = parseInt(sekInput.value) || 0;
             let total = (((min * 60) + sek) - 45) / 2;
@@ -128,56 +88,43 @@
         minInput.oninput = calculateTotal;
         sekInput.oninput = calculateTotal;
 
-        // Menü-Logik (Klick auf Button)
-        menuBtn.onclick = (e) => { 
+        menuBtn.onclick = (e) => { dropdown.classList.toggle('show'); menuBtn.classList.toggle('open'); e.stopPropagation(); };
+        window.onclick = (e) => { if (!isEditing && !modal.contains(e.target)) { dropdown.classList.remove('show'); menuBtn.classList.remove('open'); }};
+
+        document.getElementById('editBtn').onclick = function(e) {
             e.stopPropagation();
-            dropdown.classList.toggle('show'); 
-            menuBtn.classList.toggle('open'); 
-        };
-
-        // Überall hinklicken zum Schließen (außer Overlay)
-        window.onclick = (e) => { 
-            if (!modal.contains(e.target) && !menuBtn.contains(e.target)) {
-                dropdown.classList.remove('show'); 
-                menuBtn.classList.remove('open'); 
-            }
-        };
-
-        document.getElementById('editBtn').onclick = (e) => {
             if (!userMarker) return;
             isEditing = !isEditing;
             if (isEditing) {
                 userMarker.dragging.enable();
-                e.target.innerText = "✅ Speichern";
+                this.innerText = "✅ Speichern";
+                userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
             } else {
                 userMarker.dragging.disable();
-                e.target.innerText = "📍 Standort korrigieren";
-                dropdown.classList.remove('show');
-                menuBtn.classList.remove('open');
+                this.innerText = "📍 Standort korrigieren";
+                userMarker.setPopupContent("Position gespeichert!").openPopup();
+                dropdown.classList.remove('show'); menuBtn.classList.remove('open');
             }
         };
 
-        document.getElementById('pathBtn').onclick = () => { 
-            modal.style.display = 'flex'; 
-            dropdown.classList.remove('show');
-            menuBtn.classList.remove('open');
-        };
+        document.getElementById('pathBtn').onclick = (e) => { e.stopPropagation(); dropdown.classList.remove('show'); menuBtn.classList.remove('open'); modal.style.display = 'flex'; };
 
-        document.getElementById('submitFlight').onclick = () => {
+        document.getElementById('submitFlight').onclick = function() {
             const distance = calculateTotal();
             if (distance > 0 && userMarker) {
                 if (distanceCircle) map.removeLayer(distanceCircle);
                 distanceCircle = L.circle(userMarker.getLatLng(), {
-                    radius: distance, color: '#5D4037', fillColor: '#FFD700', fillOpacity: 0.3
+                    radius: distance,
+                    color: '#5D4037',
+                    fillColor: '#FFD700',
+                    fillOpacity: 0.3
                 }).addTo(map);
                 map.fitBounds(distanceCircle.getBounds());
             }
             modal.style.display = 'none';
         };
 
-        // iOS Fix für Karten-Größe
-        window.addEventListener('orientationchange', () => { setTimeout(() => { map.invalidateSize(); }, 200); });
-        setTimeout(() => { map.invalidateSize(); }, 500);
+        setTimeout(() => { map.invalidateSize(); }, 300);
     </script>
 </body>
 </html>
