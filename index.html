@@ -22,7 +22,6 @@
         .input-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; }
         .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; }
         
-        /* Beide Eingabefelder auf 3-Zeichen-Breite begrenzt */
         #flightMinInput, #flightSekInput { width: 4.5em !important; padding: 8px; box-sizing: border-box; }
         
         #calculationResult { margin: 10px 0; padding: 5px; font-weight: bold; color: #5D4037; text-align: center; background: #f9f9f9; border-radius: 4px; }
@@ -42,11 +41,11 @@
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label>Flugzeit eingeben:</label>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #5D4037;">Minuten:Sekunden</div>
             <div class="input-row">
                 <input type="number" id="flightMinInput" placeholder="Min" min="0" max="999">
-                <span>min</span>
+                <span>:</span>
                 <input type="number" id="flightSekInput" placeholder="Sek" min="0" max="999">
-                <span>sek</span>
             </div>
             <div id="calculationResult">Entfernung: 0 m</div>
             <button id="submitFlight">OK</button>
@@ -71,7 +70,6 @@
         const sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
 
         function calculateTotal() {
-            // Begrenzt beide Eingaben auf maximal 3 Zeichen
             if (minInput.value.length > 3) minInput.value = minInput.value.slice(0, 3);
             if (sekInput.value.length > 3) sekInput.value = sekInput.value.slice(0, 3);
             
