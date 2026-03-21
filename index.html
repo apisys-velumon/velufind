@@ -74,6 +74,9 @@
             if (minInput.value.length > 3) {
                 minInput.value = minInput.value.slice(0, 3);
             }
+            if (sekInput.value.length > 3) {
+                sekInput.value = sekInput.value.slice(0, 3);
+            }
             
             const min = parseInt(minInput.value) || 0;
             const sek = parseInt(sekInput.value) || 0;
@@ -95,7 +98,7 @@
             isEditing = !isEditing;
             if (isEditing) {
                 userMarker.dragging.enable();
-                this.innerText = "✅ Speichern";
+                this.innerText = "✅ Standort Speichern";
                 userMarker.setPopupContent("Zieh mich an die richtige Stelle!").openPopup();
             } else {
                 userMarker.dragging.disable();
