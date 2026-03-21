@@ -27,8 +27,8 @@
         #calculationResult, #directionValue { margin: 10px 0; padding: 12px; font-weight: bold; background: #f9f9f9; border-radius: 4px; font-size: 18px; }
         .submit-btn { width: 100%; padding: 12px; background: #FFD700; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
         
-        .stepper-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 10px 0; }
-        .step-btn { width: 45px; height: 45px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; }
+        .stepper-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0; }
+        .step-btn { width: 45px; height: 45px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .sensor-btn { background: #eee; border: 1px solid #ccc; padding: 10px; border-radius: 4px; font-size: 14px; margin-bottom: 15px; cursor: pointer; font-weight: bold; width: 100%; }
 
         #map-container { flex-grow: 1; width: 100%; margin-top: 60px; overflow: hidden; position: relative; }
@@ -51,16 +51,21 @@
     <!-- JUSTIEREN MODAL -->
     <div id="adjustModal" class="input-overlay">
         <div class="input-box">
-            <h3 style="margin-top: 0;">Justieren</h3>
+            <h3 style="margin-top: 0;">justieren</h3>
             <label style="font-weight: bold; display: block; margin-bottom: 5px;">Aktueller Winkel:</label>
             <div class="input-row">
                 <input type="number" id="adjustAngleInput" min="0" max="359" inputmode="numeric">
                 <span style="font-weight: bold;">°</span>
             </div>
-            <button class="submit-btn" id="closeAdjust">OK</button>
+            <!-- Stepper-Reihe mit OK in der Mitte -->
+            <div class="stepper-row" style="margin-top: 20px;">
+                <button class="step-btn" onclick="adjustHeading(-5)">-</button>
+                <button class="submit-btn" id="closeAdjust" style="flex-grow: 1; min-width: 80px;">OK</button>
+                <button class="step-btn" onclick="adjustHeading(5)">+</button>
+            </div>
         </div>
     </div>
-
+    
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
@@ -109,9 +114,9 @@
             if(!userMarker) userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); 
         });
 
+        // Zentrale UI Update Funktion
         function updateHeadingUI() {
-            const val = currentHeading + "°";
-            document.getElementById('directionValue').innerText = val;
+            document.getElementById('directionValue').innerText = currentHeading + "°";
             document.getElementById('adjustAngleInput').value = currentHeading;
         }
 
@@ -130,21 +135,23 @@
         adjustBtn.onclick = () => {
             adjustAngleInput.value = currentHeading;
             adjustModal.style.display = 'flex';
-            checkbox.checked = false;
+            checkbox.checked = false; 
         };
 
         closeAdjust.onclick = () => {
-            currentHeading = parseInt(adjustAngleInput.value) || 0;
-            updateHeadingUI();
             adjustModal.style.display = 'none';
         };
 
         adjustAngleInput.oninput = () => {
             manualOverride = true;
-            currentHeading = parseInt(adjustAngleInput.value) % 360 || 0;
+            let val = parseInt(adjustAngleInput.value);
+            if (!isNaN(val)) {
+                currentHeading = (val + 360) % 360;
+                document.getElementById('directionValue').innerText = currentHeading + "°";
+            }
         };
 
-        // --- Kompass Logik ---
+        // --- Kompass & Rest ---
         function handleOrientation(e) {
             if (!sensorRunning) return;
             let heading = e.webkitCompassHeading || (360 - e.alpha);
@@ -173,7 +180,6 @@
             }
         };
 
-        // --- Hilfs-Events für Modals ---
         document.getElementById('pathBtn').onclick = () => { document.getElementById('pathModal').style.display = 'flex'; checkbox.checked = false; };
         document.getElementById('submitFlight').onclick = () => { document.getElementById('pathModal').style.display = 'none'; };
     </script>
