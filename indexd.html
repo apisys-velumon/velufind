@@ -45,7 +45,7 @@
     <div class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
         <button id="pathBtn">➕ Pfad</button>
-        <button id="dirOpenBtn">🧭 Richtung anpassen</button>
+        <button id="dirBtn">🧭 Richtung</button>
     </div>
 
     <div id="pathModal" class="input-overlay">
@@ -64,16 +64,16 @@
 
     <div id="directionModal" class="input-overlay">
         <div class="input-box">
-            <label style="font-weight: bold;">Winkel des Pfades</label>
+            <label style="font-weight: bold;">Richtung</label>
             <div id="sensorBox" style="margin-top:10px;">
                 <button id="activateCompass" class="sensor-btn">🧭 Kompass aktivieren</button>
             </div>
             <div class="stepper-row">
-                <button class="step-btn" onclick="adjustHeading(-1)">-</button>
+                <button class="step-btn" onclick="adjustHeading(-5)">-</button>
                 <div id="directionValue">180°</div>
-                <button class="step-btn" onclick="adjustHeading(1)">+</button>
+                <button class="step-btn" onclick="adjustHeading(5)">+</button>
             </div>
-            <button class="submit-btn" id="confirmDirection">OK</button>
+            <button class="submit-btn" id="confirmDirection">Vektor zeichnen</button>
         </div>
     </div>
 
@@ -97,15 +97,6 @@
             if(!userMarker) userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); 
         });
 
-        // Modal Steuerung
-        const pathModal = document.getElementById('pathModal');
-        const directionModal = document.getElementById('directionModal');
-
-        document.getElementById('pathBtn').onclick = () => { pathModal.style.display = 'flex'; checkbox.checked = false; };
-        document.getElementById('dirOpenBtn').onclick = () => { directionModal.style.display = 'flex'; checkbox.checked = false; };
-        document.getElementById('submitFlight').onclick = () => { pathModal.style.display = 'none'; };
-        document.getElementById('confirmDirection').onclick = () => { directionModal.style.display = 'none'; };
-
         function handleOrientation(e) {
             if (!sensorRunning) return;
             let heading = e.webkitCompassHeading || (360 - e.alpha);
@@ -127,6 +118,14 @@
             currentHeading = (currentHeading + val + 360) % 360;
             updateHeadingUI();
         }
+
+        const pathModal = document.getElementById('pathModal'), directionModal = document.getElementById('directionModal');
+
+        // NEU: Zuweisung der Button-Funktionen
+        document.getElementById('dirBtn').onclick = () => { directionModal.style.display = 'flex'; checkbox.checked = false; };
+        document.getElementById('pathBtn').onclick = () => { pathModal.style.display = 'flex'; checkbox.checked = false; };
+        document.getElementById('confirmDirection').onclick = () => { directionModal.style.display = 'none'; };
+        document.getElementById('submitFlight').onclick = () => { pathModal.style.display = 'none'; };
 
         document.getElementById('activateCompass').onclick = function() {
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
