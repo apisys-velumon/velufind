@@ -102,6 +102,8 @@
         <div class="input-box">
             <label>Flugzeit eingeben:</label>
             <input type="text" id="flightTimeInput" placeholder="Sekunden...">
+            <label>Zusatzinfo:</label>
+            <input type="text" id="extraInput" placeholder="Hier eingeben...">
             <button id="submitFlight">OK</button>
         </div>
     </div>
@@ -172,7 +174,8 @@
 
         document.getElementById('submitFlight').onclick = function() {
             const time = document.getElementById('flightTimeInput').value;
-            console.log("Flugzeit gesetzt auf: " + time + " Sekunden");
+            const extra = document.getElementById('extraInput').value;
+            console.log("Flugzeit: " + time + ", Zusatz: " + extra);
             modal.style.display = 'none';
         };
 
