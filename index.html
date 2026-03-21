@@ -7,110 +7,35 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
-        
-        .header {
-            background-color: #FFD700;
-            color: #5D4037;
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 2000;
-            box-sizing: border-box;
-            height: 60px;
-        }
-
+        .header { background-color: #FFD700; color: #5D4037; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; box-sizing: border-box; height: 60px; }
         .header-title { font-weight: bold; font-size: 20px; }
-
-        .hamburger-btn {
-            width: 30px; height: 24px;
-            background: transparent; border: none;
-            cursor: pointer; padding: 0;
-            display: flex; flex-direction: column; justify-content: space-between;
-            box-sizing: border-box; position: relative;
-        }
-
-        .hamburger-btn span {
-            display: block; height: 4px; width: 100%;
-            background-color: #5D4037; border-radius: 2px;
-            transition: all 0.3s ease-in-out; position: relative;
-        }
-
+        .hamburger-btn { width: 30px; height: 24px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; position: relative; }
+        .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: all 0.3s ease-in-out; position: relative; }
         .hamburger-btn.open span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
         .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
         .hamburger-btn.open span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
-
-        .dropdown-menu {
-            position: absolute;
-            top: 65px; right: 15px;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 3000;
-            border-radius: 4px;
-            overflow: hidden;
-            display: block; 
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s;
-        }
-
+        .dropdown-menu { position: absolute; top: 65px; right: 15px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 3000; border-radius: 4px; overflow: hidden; display: block; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out, visibility 0.3s; }
         .dropdown-menu.show { opacity: 1; visibility: visible; }
-
-        .dropdown-menu button {
-            width: 100%; padding: 12px 20px;
-            border: none; background: none;
-            text-align: left; cursor: pointer;
-            font-size: 14px; white-space: nowrap;
-        }
-
+        .dropdown-menu button { width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; white-space: nowrap; }
         .dropdown-menu button:hover { background: #f0f0f0; }
-
-        .input-overlay {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 4000;
-            justify-content: center; align-items: center;
-        }
-        .input-box {
-            background: white; padding: 20px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px;
-        }
-
+        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; justify-content: center; align-items: center; }
+        .input-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; }
         .input-row { display: flex; gap: 10px; margin: 10px 0; }
-
         .input-box input { width: 100%; padding: 8px; box-sizing: border-box; }
-        
-        /* Anzeige für das Ergebnis */
-        #calculationResult {
-            margin: 10px 0;
-            padding: 5px;
-            font-weight: bold;
-            color: #5D4037;
-            text-align: center;
-            background: #f9f9f9;
-            border-radius: 4px;
-        }
-
+        #calculationResult { margin: 10px 0; padding: 5px; font-weight: bold; color: #5D4037; text-align: center; background: #f9f9f9; border-radius: 4px; }
         .input-box button { width: 100%; padding: 10px; background: #FFD700; border: none; cursor: pointer; font-weight: bold; }
-
         #map { flex-grow: 1; width: 100%; z-index: 1; }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="header-title">APISYS veluFind</div>
-        <button class="hamburger-btn" id="menuToggle">
-            <span></span><span></span><span></span>
-        </button>
+        <button class="hamburger-btn" id="menuToggle"><span></span><span></span><span></span></button>
     </div>
-    
     <div id="myDropdown" class="dropdown-menu">
         <button id="editBtn">📍 Standort korrigieren</button>
         <button id="pathBtn">➕ Pfad</button>
     </div>
-
-    <!-- Eingabefenster -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label>Flugzeit eingeben:</label>
@@ -118,69 +43,47 @@
                 <input type="number" id="flightMinInput" placeholder="Minuten..." min="0">
                 <input type="number" id="flightSekInput" placeholder="Sekunden..." min="0">
             </div>
-            <div id="calculationResult">Gesamt: 0 Sekunden</div>
+            <div id="calculationResult">Entfernung: 0 m</div>
             <button id="submitFlight">OK</button>
         </div>
     </div>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-        let userMarker;
+        let userMarker, distanceCircle;
         let isEditing = false;
 
-        map.on('popupopen', function(e) {
-            setTimeout(function() { map.closePopup(); }, 1000); 
-        });
-
+        map.on('popupopen', () => { setTimeout(() => { map.closePopup(); }, 1000); });
         map.locate({setView: true, maxZoom: 16});
-        
-        map.on('locationfound', e => {
-            userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup();
-        });
+        map.on('locationfound', e => { userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); });
 
-        const menuBtn = document.getElementById('menuToggle');
-        const dropdown = document.getElementById('myDropdown');
-        const modal = document.getElementById('pathModal');
-        const minInput = document.getElementById('flightMinInput');
-        const sekInput = document.getElementById('flightSekInput');
-        const resultDiv = document.getElementById('calculationResult');
+        const menuBtn = document.getElementById('menuToggle'), dropdown = document.getElementById('myDropdown');
+        const modal = document.getElementById('pathModal'), minInput = document.getElementById('flightMinInput');
+        const sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
 
-        // Berechnungs-Logik
         function calculateTotal() {
             const min = parseInt(minInput.value) || 0;
             const sek = parseInt(sekInput.value) || 0;
-            const total = (((min * 60) + sek)- 45) /2;
+            let total = (((min * 60) + sek) - 45) / 2;
+            total = total < 0 ? 0 : total; // Keine negativen Werte
             resultDiv.innerText = "Entfernung: " + total + " m";
+            return total;
         }
 
         minInput.oninput = calculateTotal;
         sekInput.oninput = calculateTotal;
 
-        menuBtn.onclick = (e) => {
-            dropdown.classList.toggle('show');
-            menuBtn.classList.toggle('open');
-            e.stopPropagation();
-        };
-
-        window.onclick = (e) => { 
-            if (!isEditing && !modal.contains(e.target)) {
-                dropdown.classList.remove('show'); 
-                menuBtn.classList.remove('open');
-            }
-        };
+        menuBtn.onclick = (e) => { dropdown.classList.toggle('show'); menuBtn.classList.toggle('open'); e.stopPropagation(); };
+        window.onclick = (e) => { if (!isEditing && !modal.contains(e.target)) { dropdown.classList.remove('show'); menuBtn.classList.remove('open'); }};
 
         document.getElementById('editBtn').onclick = function(e) {
             e.stopPropagation();
             if (!userMarker) return;
             isEditing = !isEditing;
-            
             if (isEditing) {
                 userMarker.dragging.enable();
                 this.innerText = "✅ Speichern";
@@ -189,19 +92,24 @@
                 userMarker.dragging.disable();
                 this.innerText = "📍 Standort korrigieren";
                 userMarker.setPopupContent("Position gespeichert!").openPopup();
-                dropdown.classList.remove('show');
-                menuBtn.classList.remove('open');
+                dropdown.classList.remove('show'); menuBtn.classList.remove('open');
             }
         };
 
-        document.getElementById('pathBtn').onclick = function(e) {
-            e.stopPropagation();
-            dropdown.classList.remove('show');
-            menuBtn.classList.remove('open');
-            modal.style.display = 'flex';
-        };
+        document.getElementById('pathBtn').onclick = (e) => { e.stopPropagation(); dropdown.classList.remove('show'); menuBtn.classList.remove('open'); modal.style.display = 'flex'; };
 
         document.getElementById('submitFlight').onclick = function() {
+            const distance = calculateTotal();
+            if (distance > 0 && userMarker) {
+                if (distanceCircle) map.removeLayer(distanceCircle);
+                distanceCircle = L.circle(userMarker.getLatLng(), {
+                    radius: distance,
+                    color: '#5D4037',
+                    fillColor: '#FFD700',
+                    fillOpacity: 0.3
+                }).addTo(map);
+                map.fitBounds(distanceCircle.getBounds());
+            }
             modal.style.display = 'none';
         };
 
