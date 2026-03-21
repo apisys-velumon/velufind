@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
         
@@ -55,7 +55,10 @@
             transition: opacity 0.3s ease-in-out, visibility 0.3s;
         }
 
-        .dropdown-menu.show { opacity: 1; visibility: visible; }
+        .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+        }
 
         .dropdown-menu button {
             width: 100%; padding: 12px 20px;
@@ -66,6 +69,7 @@
 
         .dropdown-menu button:hover { background: #f0f0f0; }
 
+        /* Style für das Eingabefenster */
         .input-overlay {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -74,9 +78,17 @@
         }
         .input-box {
             background: white; padding: 20px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 250px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px;
         }
-        .input-box input { width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; }
+
+        /* Container für Nebeneinander-Anordnung */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .input-box input { width: 100%; padding: 8px; box-sizing: border-box; }
         .input-box button { width: 100%; padding: 10px; background: #FFD700; border: none; cursor: pointer; font-weight: bold; }
 
         #map { flex-grow: 1; width: 100%; z-index: 1; }
@@ -95,22 +107,24 @@
         <button id="pathBtn">➕ Pfad</button>
     </div>
 
+    <!-- Eingabefenster -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
-            <label>Flugzeit (Min):</label>
-            <input type="text" id="flightTimeInput" placeholder="Minuten...">
-            <label>Flugzeit (Sek):</label>
-            <input type="text" id="courseInput" placeholder="Sekunden...">
+            <label>Flugzeit eingeben:</label>
+            <div class="input-row">
+                <input type="text" id="flightMinInput" placeholder="Minuten...">
+                <input type="text" id="flightSekInput" placeholder="Sekunden...">
+            </div>
             <button id="submitFlight">OK</button>
         </div>
     </div>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
@@ -162,6 +176,7 @@
             }
         };
 
+        // Pfad Button zeigt Eingabefenster
         document.getElementById('pathBtn').onclick = function(e) {
             e.stopPropagation();
             dropdown.classList.remove('show');
@@ -169,10 +184,11 @@
             modal.style.display = 'flex';
         };
 
+        // Eingabefenster schließen
         document.getElementById('submitFlight').onclick = function() {
-            const time = document.getElementById('flightTimeInput').value;
-            const course = document.getElementById('courseInput').value;
-            console.log("Daten übernommen: Flugzeit " + time + " / Kurs " + course);
+            const min = document.getElementById('flightMinInput').value;
+            const sek = document.getElementById('flightSekInput').value;
+            console.log("Flugzeit gesetzt auf: " + min + " Min, " + sek + " Sek");
             modal.style.display = 'none';
         };
 
