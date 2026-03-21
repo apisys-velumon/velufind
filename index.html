@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>APISYS veluFind</title>
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
         .header { background-color: #FFD700; color: #5D4037; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; }
@@ -47,7 +47,6 @@
         <button id="pathBtn">➕ Pfad</button>
     </div>
 
-    <!-- Modals -->
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
@@ -81,16 +80,16 @@
         <div id="map"></div>
     </div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const checkbox = document.getElementById('menu-checkbox');
         const mapElement = document.getElementById('map');
         const map = L.map('map', { tap: false, zoomControl: false }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let userMarker, distanceCircle, directionLine;
-        let isEditing = false, currentHeading = 180, manualOverride = false, sensorEnabled = false;
+        let isEditing = false, currentHeading = 180, manualOverride = false, sensorRunning = false;
 
         map.locate({setView: true, maxZoom: 16});
         map.on('locationfound', e => { 
@@ -98,7 +97,7 @@
         });
 
         function handleOrientation(e) {
-            if (!sensorEnabled) return; // Rotation nur, wenn Sensor-Modus aktiv
+            if (!sensorRunning) return;
             let heading = e.webkitCompassHeading || (360 - e.alpha);
             if (heading) {
                 mapElement.style.transform = `rotate(${-heading}deg)`;
@@ -127,13 +126,13 @@
                 DeviceOrientationEvent.requestPermission().then(state => {
                     if (state === 'granted') {
                         window.addEventListener('deviceorientation', handleOrientation, true);
-                        sensorEnabled = true;
+                        sensorRunning = true;
                         document.getElementById('activateCompass').style.display = 'none';
                     }
                 });
             } else {
                 window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-                sensorEnabled = true;
+                sensorRunning = true;
                 document.getElementById('activateCompass').style.display = 'none';
             }
         };
@@ -145,14 +144,11 @@
         };
 
         document.getElementById('confirmDirection').onclick = function() {
-            // 1. Rotation ausschalten
-            sensorEnabled = false;
-            mapElement.style.transform = `rotate(0deg)`;
+            // Rotation stoppen und Karte auf Norden zurücksetzen
+            sensorRunning = false;
+            mapElement.style.transform = "rotate(0deg)";
 
-            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
-            let distance = (((min * 60) + sek) - 45) / 2;
-            distance = distance < 0 ? 0 : distance;
-
+            const distance = calculateDistance();
             if (distance > 0 && userMarker) {
                 const start = userMarker.getLatLng();
                 const angle = (currentHeading * Math.PI) / 180;
@@ -166,11 +162,20 @@
                 distanceCircle = L.circle(start, { radius: distance, color: '#5D4037', fillOpacity: 0.1 }).addTo(map);
                 directionLine = L.polyline([start, end], { color: 'red', weight: 4 }).addTo(map);
                 
-                // 2. Wieder die ganze Karte (Vektor + Kreis) anzeigen
+                // Gesamten Pfad anzeigen
                 map.fitBounds(distanceCircle.getBounds());
             }
             directionModal.style.display = 'none';
         };
+
+        function calculateDistance() {
+            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
+            let total = (((min * 60) + sek) - 45) / 2;
+            return total < 0 ? 0 : total;
+        }
+
+        minInput.oninput = () => resultDiv.innerText = "Entfernung: " + calculateDistance() + " m";
+        sekInput.oninput = minInput.oninput;
 
         document.getElementById('pathBtn').onclick = () => { checkbox.checked = false; pathModal.style.display = 'flex'; };
         document.getElementById('editBtn').onclick = function() {
@@ -179,13 +184,6 @@
             isEditing ? userMarker.dragging.enable() : userMarker.dragging.disable();
             this.innerText = isEditing ? "✅ Speichern" : "📍 Standort korrigieren";
         };
-
-        minInput.oninput = () => {
-            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
-            let total = (((min * 60) + sek) - 45) / 2;
-            resultDiv.innerText = "Entfernung: " + (total < 0 ? 0 : total) + " m";
-        };
-        sekInput.oninput = minInput.oninput;
 
         setTimeout(() => { map.invalidateSize(); }, 400);
     </script>
