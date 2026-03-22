@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>APISYS veluFind</title>
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <style>
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; overflow: hidden; }
+        .header { background-color: #FFD700; color: #5D4037; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; height: 60px; position: fixed; top: 0; width: 100%; box-sizing: border-box; }
+        .header-title { font-weight: bold; font-size: 20px; }
+        #menu-checkbox { display: none; }
+        .hamburger-btn { width: 30px; height: 24px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+        .hamburger-btn span { display: block; height: 4px; width: 100%; background-color: #5D4037; border-radius: 2px; transition: 0.3s; }
+        #menu-checkbox:checked ~ .header .hamburger-btn span:nth-child(1) { transform: translateY(10px) rotate(45deg); }
+        #menu-checkbox:checked ~ .header .hamburger-btn span:nth-child(2) { opacity: 0; }
+        #menu-checkbox:checked ~ .header .hamburger-btn span:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
+        
+        .dropdown-menu { position: fixed; top: 60px; right: 15px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 4999; border-radius: 4px; display: none; flex-direction: column; }
+        #menu-checkbox:checked ~ .dropdown-menu { display: flex; }
+        .dropdown-menu button { width: 100%; padding: 15px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 16px; }
+
+        .input-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 6000; justify-content: center; align-items: center; }
+        .input-box { background: white; padding: 20px; border-radius: 8px; width: fit-content; min-width: 240px; text-align: center; box-sizing: border-box; }
+        
+        /* Justieren-Modal am unteren Rand fixiert */
+        #adjustModal { align-items: flex-end; }
+        #adjustModal .input-box { width: 100%; min-width: 100%; border-radius: 20px 20px 0 0; padding: 20px 15px 40px 15px; animation: slideUp 0.3s ease-out; }
+
+        .button-row { display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; }
+        .adjust-step-btn { width: 60px; height: 60px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .submit-btn { padding: 12px 25px; background: #FFD700; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; min-width: 100px; }
+
+        #map-container { flex-grow: 1; width: 100%; margin-top: 60px; position: relative; }
+        #map { width: 100%; height: 100%; }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <input type="checkbox" id="menu-checkbox">
+    <div class="header">
+        <div class="header-title">APISYS veluFind</div>
+        <label for="menu-checkbox" class="hamburger-btn"><span></span><span></span><span></span></label>
+    </div>
+
+    <div class="dropdown-menu">
+        <button id="pathBtn">➕ Pfad erstellen</button>
+        <button id="adjustBtn">🧭 Justieren</button>
+    </div>
+
+    <!-- Justieren Modal -->
+    <div id="adjustModal" class="input-overlay">
+        <div class="input-box">
+            <div class="button-row">
+                <button class="adjust-step-btn" id="btnMinus">−</button>
+                <button class="submit-btn" id="closeAdjust">OK</button>
+                <button class="adjust-step-btn" id="btnPlus">+</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pfad Modal -->
+    <div id="pathModal" class="input-overlay">
+        <div class="input-box">
+            <label style="font-weight: bold;">Flugzeit (Min:Sek):</label>
+            <div style="display:flex; gap:10px; justify-content:center; margin:15px 0;">
+                <input type="number" id="minIn" placeholder="Min" style="width:50px; text-align:center;">
+                <input type="number" id="sekIn" placeholder="Sek" style="width:50px; text-align:center;">
+            </div>
+            <button class="submit-btn" id="submitPath">Pfad & Kreis zeichnen</button>
+        </div>
+    </div>
+
+    <div id="map-container"><div id="map"></div></div>
+
+    <script src="https://unpkg.com"></script>
+    <script>
+        const map = L.map('map', { zoomControl: false }).setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png').addTo(map);
+
+        let userMarker, distanceCircle, directionLine;
+        let currentHeading = 180;
+        let currentRadius = 0;
+
+        map.locate({setView: true, maxZoom: 16});
+        map.on('locationfound', e => { 
+            if(!userMarker) userMarker = L.marker(e.latlng).addTo(map); 
+        });
+
+        function drawAll() {
+            if (!userMarker || currentRadius <= 0) return;
+            const pos = userMarker.getLatLng();
+
+            // Kreis zeichnen/aktualisieren
+            if (distanceCircle) { distanceCircle.setLatLng(pos).setRadius(currentRadius); } 
+            else { distanceCircle = L.circle(pos, { radius: currentRadius, fillOpacity: 0.1 }).addTo(map); }
+
+            // Pfad (Vektor) zeichnen/aktualisieren
+            if (directionLine) map.removeLayer(directionLine);
+            const angleRad = (90 - currentHeading) * (Math.PI / 180);
+            const latDiff = (currentRadius / 111320) * Math.sin(angleRad);
+            const lngDiff = (currentRadius / (111320 * Math.cos(pos.lat * Math.PI / 180))) * Math.cos(angleRad);
+            directionLine = L.polyline([pos, [pos.lat + latDiff, pos.lng + lngDiff]], {color: 'red', weight: 5}).addTo(map);
+        }
+
+        // Menü Steuerung
+        document.getElementById('adjustBtn').onclick = () => {
+            document.getElementById('adjustModal').style.display = 'flex';
+            document.getElementById('menu-checkbox').checked = false;
+        };
+        document.getElementById('closeAdjust').onclick = () => document.getElementById('adjustModal').style.display = 'none';
+
+        // Rotation um 1 Grad
+        document.getElementById('btnPlus').onclick = () => { currentHeading = (currentHeading + 1) % 360; drawAll(); };
+        document.getElementById('btnMinus').onclick = () => { currentHeading = (currentHeading - 1 + 360) % 360; drawAll(); };
+
+        // Pfad Erstellung
+        document.getElementById('pathBtn').onclick = () => document.getElementById('pathModal').style.display = 'flex';
+        document.getElementById('submitPath').onclick = () => {
+            const m = parseInt(document.getElementById('minIn').value) || 0;
+            const s = parseInt(document.getElementById('sekIn').value) || 0;
+            currentRadius = (m * 60 + s) * 5; // Beispiel: 5m pro Sekunde
+            drawAll();
+            document.getElementById('pathModal').style.display = 'none';
+        };
+    </script>
+</body>
+</html>
