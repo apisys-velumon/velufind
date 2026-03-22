@@ -34,33 +34,23 @@
         #map-container { flex-grow: 1; width: 100%; margin-top: 60px; overflow: hidden; position: relative; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 
-#marker-wrapper {
-    position: relative;
-    width: 100%;
-    text-align: center;
-}
+        #adjustModal { align-items: flex-end; /* Richtet den Inhalt am unteren Rand aus */}
 
-#marker {
-    width: 40px;
-    height: 40px;
-    background: red;
-    border-radius: 50%;
-    margin: 0 auto;
-}
+        #adjustModal .input-box {
+            width: 100%;
+            min-width: 100%;
+            border-radius: 20px 20px 0 0; /* Abgerundete Ecken nur oben */
+            padding-bottom: 30px; /* Etwas mehr Platz nach unten für mobile Geräte */
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease-out;
+        }
 
-#adjustModal {
-    position: relative;   /* statt absolute */
-    margin-top: 20px;     /* Abstand unter dem Kreis */
-    display: inline-block;
-    padding: 10px;
-    background: white;
-    border: 1px solid #aaa;
-    border-radius: 8px;
-}
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
 
-
-
-</style>
+    </style>
 </head>
 <body>
     <input type="checkbox" id="menu-checkbox">
@@ -77,36 +67,18 @@
 
     
     <!-- NEUES MODAL FÜR ADJUST -->
-
-    <div id="marker-wrapper">
-        <div id="marker"></div>
-
-        <!-- <div id="justieren"> -->
-            
-        <div id="adjustModal" class="input-overlay">
-            <div class="input-box">
-                <h3 style="margin-top: 0;">justieren</h3>
-           
-                <button class="submit-btn" id="closeAdjust">OK</button>
-            </div>
-        </div>
-
-
-        <!-- Inhalt des Justieren-Fensters -->
-        <!-- </div> -->
-    </div>
-
-
-
-
     
+
+
     <div id="adjustModal" class="input-overlay">
-        <div class="input-box">
-            <h3 style="margin-top: 0;">justieren</h3>
-           
-            <button class="submit-btn" id="closeAdjust">OK</button>
-        </div>
+    <div class="input-box">
+        <h3 style="margin-top: 0;">justieren</h3>
+        <p>Hier können Sie die Einstellungen anpassen.</p> 
+        <!-- Platzhalter für weiteren Inhalt -->
+        <button class="submit-btn" id="closeAdjust">OK</button>
     </div>
+</div>
+
     
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
