@@ -34,25 +34,73 @@
         #map-container { flex-grow: 1; width: 100%; margin-top: 60px; overflow: hidden; position: relative; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 
-        /* Justieren Modal am unteren Rand */
-        #adjustModal { align-items: flex-end; }
+        #adjustModal { align-items: flex-end; /* Richtet den Inhalt am unteren Rand aus */}
+
         #adjustModal .input-box {
             width: 100%;
             min-width: 100%;
-            border-radius: 20px 20px 0 0;
-            padding: 20px 15px 35px 15px;
+            border-radius: 20px 20px 0 0; /* Abgerundete Ecken nur oben */
+            padding-bottom: 30px; /* Etwas mehr Platz nach unten für mobile Geräte */
             box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
             animation: slideUp 0.3s ease-out;
         }
 
-        .button-row { display: flex; justify-content: center; align-items: center; gap: 15px; width: 100%; }
-        .adjust-step-btn { width: 55px; height: 55px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; }
-        #adjustModal #closeAdjust { width: auto; min-width: 100px; padding: 12px 25px; margin: 0; }
+
+
+        /*/* Ändert nur die OK-Taste im Justieren-Fenster auf Minimalbreite */
+        /*#adjustModal #closeAdjust {
+        /*    width: auto;         /* Hebt die 100% Breite auf */
+        /*    min-width: 80px;     /* Sorgt für eine angenehme Mindestgröße zum Tippen */
+        /*    padding-left: 25px;  /* Platz links vom Text */
+        /*    padding-right: 25px; /* Platz rechts vom Text */
+        /*    margin: 0 auto;      /* Zentriert den Button horizontal */
+        /*    display: block;      /* Ermöglicht die Zentrierung via margin: auto */
+        /*}
+
+        /* Container, um die Buttons in eine Reihe zu bringen */
+    .button-row {
+        display: flex;
+        justify-content: center; /* Zentriert die Gruppe */
+        align-items: center;
+        gap: 15px; /* Abstand zwischen den Tasten */
+        width: 100%;
+    }
+
+    /* Die neuen Plus/Minus Tasten */
+    .adjust-step-btn {
+        width: 50px;
+        height: 50px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Die OK-Taste (jetzt schmal) */
+    #adjustModal #closeAdjust {
+        width: auto;
+        min-width: 100px;
+        padding: 12px 25px;
+        margin: 0; /* Margin-Auto nicht mehr nötig wegen flex-row */
+    }
+
+
+
+
+
+
+
 
         @keyframes slideUp {
             from { transform: translateY(100%); }
             to { transform: translateY(0); }
         }
+
     </style>
 </head>
 <body>
@@ -68,8 +116,15 @@
         <button id="adjustBtn">🧭 justieren</button>
     </div>
 
+    
+
+
+    <!-- MODAL FÜR ADJUST (unten fixiert) -->
     <div id="adjustModal" class="input-overlay">
         <div class="input-box">
+            <!-- <h3 style="margin-top: 0;">justieren</h3> -->
+            
+            <!-- Container für die drei Tasten nebeneinander -->
             <div class="button-row">
                 <button class="adjust-step-btn" id="btnMinus">-</button>
                 <button class="submit-btn" id="closeAdjust">OK</button>
@@ -78,6 +133,8 @@
         </div>
     </div>
 
+
+    
     <div id="pathModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Flugzeit eingeben:</label>
@@ -95,6 +152,9 @@
     <div id="directionModal" class="input-overlay">
         <div class="input-box">
             <label style="font-weight: bold;">Richtung</label>
+            <div id="sensorBox" style="margin-top:10px;">
+                <button id="activateCompass" class="sensor-btn">🧭 Kompass aktivieren</button>
+            </div>
             <div class="stepper-row">
                 <button class="step-btn" onclick="adjustHeading(-5)">-</button>
                 <div id="directionValue">180°</div>
@@ -104,67 +164,187 @@
         </div>
     </div>
 
+
+
     <div id="map-container">
         <div id="map"></div>
     </div>
 
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        const checkbox = document.getElementById('menu-checkbox');
+        const mapElement = document.getElementById('map');
         const map = L.map('map', { tap: false, zoomControl: false }).setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        let userMarker, directionLine;
-        let currentHeading = 180;
-        let currentDistance = 0;
+        let userMarker, distanceCircle, directionLine;
+        let isEditing = false, currentHeading = 180, manualOverride = false, sensorRunning = false;
 
         map.locate({setView: true, maxZoom: 16});
         map.on('locationfound', e => { 
-            if(!userMarker) userMarker = L.marker(e.latlng, {draggable: true}).addTo(map); 
+            if(!userMarker) userMarker = L.marker(e.latlng).addTo(map).bindPopup("Hier bist du!").openPopup(); 
         });
 
+        function handleOrientation(e) {
+            if (!sensorRunning) return;
+            let heading = e.webkitCompassHeading || (360 - e.alpha);
+            if (heading) {
+                mapElement.style.transform = `rotate(${-heading}deg)`;
+                if (!manualOverride) {
+                    currentHeading = Math.round(heading);
+                    updateHeadingUI();
+                }
+            }
+        }
+
+        function updateHeadingUI() {
+            document.getElementById('directionValue').innerText = currentHeading + "°";
+        }
+
         function adjustHeading(val) {
+            manualOverride = true; 
             currentHeading = (currentHeading + val + 360) % 360;
-            const dirVal = document.getElementById('directionValue');
-            if(dirVal) dirVal.innerText = currentHeading + "°";
-            if(directionLine) drawVector(); // Pfad sofort aktualisieren
+            updateHeadingUI();
         }
 
-        function drawVector() {
-            if (directionLine) map.removeLayer(directionLine);
-            if (!userMarker || currentDistance <= 0) return;
+        const pathModal = document.getElementById('pathModal'), directionModal = document.getElementById('directionModal');
+        const minInput = document.getElementById('flightMinInput'), sekInput = document.getElementById('flightSekInput'), resultDiv = document.getElementById('calculationResult');
 
-            const start = userMarker.getLatLng();
-            const angleRad = (90 - currentHeading) * (Math.PI / 180);
-            const latDiff = (currentDistance / 111320) * Math.sin(angleRad);
-            const lngDiff = (currentDistance / (111320 * Math.cos(start.lat * Math.PI / 180))) * Math.cos(angleRad);
-            
-            directionLine = L.polyline([start, [start.lat + latDiff, start.lng + lngDiff]], {color: 'red', weight: 5}).addTo(map);
+        // ADJUST LOGIK
+        const adjustBtn = document.getElementById('adjustBtn');
+        const adjustModal = document.getElementById('adjustModal');
+        const closeAdjust = document.getElementById('closeAdjust');
+
+        adjustBtn.onclick = () => {
+            adjustModal.style.display = 'flex';
+            checkbox.checked = false; // Menü schließen
+        };
+
+        closeAdjust.onclick = () => {
+            adjustModal.style.display = 'none';
+        };
+        
+        
+        
+        
+        
+        
+        
+        document.getElementById('activateCompass').onclick = function() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(state => {
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                        sensorRunning = true;
+                        document.getElementById('activateCompass').style.display = 'none';
+                    }
+                });
+            } else {
+                window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                sensorRunning = true;
+                document.getElementById('activateCompass').style.display = 'none';
+            }
+        };
+
+        document.getElementById('submitFlight').onclick = function() {
+            pathModal.style.display = 'none';
+            directionModal.style.display = 'flex';
+            manualOverride = false;
+        };
+
+        document.getElementById('confirmDirection').onclick = function() {
+            // Rotation stoppen und Karte auf Norden zurücksetzen
+            sensorRunning = false;
+            mapElement.style.transform = "rotate(0deg)";
+
+            const distance = calculateDistance();
+            if (distance > 0 && userMarker) {
+                const start = userMarker.getLatLng();
+                const angle = (currentHeading * Math.PI) / 180;
+                const dLat = (distance * Math.cos(angle)) / 111320;
+                const dLon = (distance * Math.sin(angle)) / (111320 * Math.cos(start.lat * Math.PI / 180));
+                const end = [start.lat + dLat, start.lng + dLon];
+
+                if (distanceCircle) map.removeLayer(distanceCircle);
+                if (directionLine) map.removeLayer(directionLine);
+
+                distanceCircle = L.circle(start, { radius: distance, color: '#5D4037', fillOpacity: 0.1 }).addTo(map);
+                directionLine = L.polyline([start, end], { color: 'red', weight: 4 }).addTo(map);
+                
+                // Gesamten Pfad anzeigen
+                map.fitBounds(distanceCircle.getBounds());
+            }
+            directionModal.style.display = 'none';
+        };
+
+        function calculateDistance() {
+            const min = parseInt(minInput.value) || 0, sek = parseInt(sekInput.value) || 0;
+            let total = (((min * 60) + sek) - 45) / 2;
+            return total < 0 ? 0 : total;
         }
 
-        // Justieren Logik
-        document.getElementById('adjustBtn').onclick = () => {
-            document.getElementById('adjustModal').style.display = 'flex';
-            document.getElementById('menu-checkbox').checked = false;
-        };
-        document.getElementById('closeAdjust').onclick = () => document.getElementById('adjustModal').style.display = 'none';
+        minInput.oninput = () => resultDiv.innerText = "Entfernung: " + calculateDistance() + " m";
+        sekInput.oninput = minInput.oninput;
 
-        // ROTATION UM 1 GRAD
-        document.getElementById('btnPlus').onclick = () => adjustHeading(1);
-        document.getElementById('btnMinus').onclick = () => adjustHeading(-1);
+        document.getElementById('pathBtn').onclick = () => { 
+            checkbox.checked = false; 
+            pathModal.style.display = 'flex'; };
+        document.getElementById('editBtn').onclick = function() {
+            checkbox.checked = false;
+            isEditing = !isEditing;
+            isEditing ? userMarker.dragging.enable() : userMarker.dragging.disable();
+            this.innerText = isEditing ? "✅ Speichern" : "📍 Standort korrigieren";
+        };
 
-        // Pfad & Richtung Hilfen
-        document.getElementById('pathBtn').onclick = () => document.getElementById('pathModal').style.display = 'flex';
-        document.getElementById('submitFlight').onclick = () => {
-            const min = parseInt(document.getElementById('flightMinInput').value) || 0;
-            const sek = parseInt(document.getElementById('flightSekInput').value) || 0;
-            currentDistance = (min * 60 + sek) * 5; // Beispiel: 5m/s
-            document.getElementById('pathModal').style.display = 'none';
-            document.getElementById('directionModal').style.display = 'flex';
-        };
-        document.getElementById('confirmDirection').onclick = () => {
-            drawVector();
-            document.getElementById('directionModal').style.display = 'none';
-        };
+
+
+        // Logik für die neuen Justieren-Buttons
+const btnPlus = document.getElementById('btnPlus');
+const btnMinus = document.getElementById('btnMinus');
+
+btnPlus.onclick = () => {
+    manualOverride = true; 
+    // +1 Grad im Uhrzeigersinn
+    currentHeading = (currentHeading + 1 + 360) % 360;
+    updateHeadingUI();
+    redrawDirectionLine(); // Diese Funktion sorgt für das Neuzeichnen auf der Karte
+};
+
+btnMinus.onclick = () => {
+    manualOverride = true; 
+    // -1 Grad gegen den Uhrzeigersinn
+    currentHeading = (currentHeading - 1 + 360) % 360;
+    updateHeadingUI();
+    redrawDirectionLine();
+};
+
+// Hilfsfunktion zum Neuzeichnen (falls noch nicht global definiert)
+function redrawDirectionLine() {
+    if (userMarker && typeof drawVector === "function") {
+        // Falls du eine Funktion namens drawVector hast, rufe sie hier auf
+        // Alternativ: Der Code, der deine 'directionLine' löscht und neu setzt
+        drawVector(); 
+    }
+}
+
+function drawVector() {
+    if (directionLine) map.removeLayer(directionLine);
+    
+    const startLatlng = userMarker.getLatLng();
+    const distance = 500; // Beispiel: 500 Meter Länge
+    
+    // Berechnung des Endpunkts basierend auf currentHeading
+    const angleRad = (90 - currentHeading) * (Math.PI / 180);
+    const endLat = startLatlng.lat + (distance / 111320) * Math.sin(angleRad);
+    const endLng = startLatlng.lng + (distance / (111320 * Math.cos(startLatlng.lat * Math.PI / 180))) * Math.cos(angleRad);
+    
+    directionLine = L.polyline([startLatlng, [endLat, endLng]], {color: 'red'}).addTo(map);
+}
+
+
+
+        setTimeout(() => { map.invalidateSize(); }, 400);
     </script>
 </body>
 </html>
